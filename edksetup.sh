@@ -211,4 +211,6 @@ SourceEnv
 
 unset SCRIPTNAME RECONFIG
 
+export CLANG_BIN=/mnt/part5/llvm-project/build/bin/
+
 return $?

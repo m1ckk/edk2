@@ -370,6 +370,7 @@ InitProtectedMemRange (
   VOID
   )
 {
+  DEBUG ((DEBUG_INFO, "InitProtectedMemRange()@%p\n", InitProtectedMemRange));
   UINTN                            Index;
   UINTN                            NumberOfDescriptors;
   UINTN                            NumberOfAddedDescriptors;
@@ -856,6 +857,7 @@ InitSmmProfileInternal (
   VOID
   )
 {
+  DEBUG ((DEBUG_INFO, "InitSmmProfileInternal()@%p\n", InitSmmProfileInternal));
   EFI_STATUS                 Status;
   EFI_PHYSICAL_ADDRESS       Base;
   VOID                       *Registration;
@@ -1162,10 +1164,12 @@ InitSmmProfile (
   UINT32  Cr3
   )
 {
+  DEBUG ((DEBUG_INFO, "InitSmmProfile()@%p\n", InitSmmProfile));
   //
   // Save Cr3
   //
   mSmmProfileCr3 = Cr3;
+  DEBUG ((DEBUG_INFO, "Page table CR3 = %p\n", Cr3));
 
   //
   // Skip SMM profile initialization if feature is disabled
@@ -1173,6 +1177,7 @@ InitSmmProfile (
   if (!FeaturePcdGet (PcdCpuSmmProfileEnable) &&
       !HEAP_GUARD_NONSTOP_MODE &&
       !NULL_DETECTION_NONSTOP_MODE) {
+      DEBUG ((DEBUG_INFO, "Skipping SMM profile initialization\n"));
     return;
   }
 

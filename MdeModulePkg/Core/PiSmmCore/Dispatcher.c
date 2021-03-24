@@ -300,6 +300,7 @@ SmmLoadImage (
   IN OUT EFI_SMM_DRIVER_ENTRY  *DriverEntry
   )
 {
+  DEBUG ((DEBUG_INFO, "SmmLoadImage()\n"));
   UINT32                         AuthenticationStatus;
   UINTN                          FilePathSize;
   VOID                           *Buffer;
@@ -645,8 +646,9 @@ SmmLoadImage (
 
 
     DEBUG ((DEBUG_INFO | DEBUG_LOAD,
-           "Loading SMM driver at 0x%11p EntryPoint=0x%11p ",
+           "Loading SMM driver at 0x%11p with image size 0x%lx EntryPoint=0x%11p ",
            (VOID *)(UINTN) ImageContext.ImageAddress,
+           ImageContext.ImageSize,
            FUNCTION_ENTRY_POINT (ImageContext.EntryPoint)));
 
 
@@ -1275,6 +1277,8 @@ SmmDriverDispatchHandler (
   UINT32                        AuthenticationStatus;
   UINTN                         SizeOfBuffer;
 
+  DEBUG ((DEBUG_INFO, "SmmDriverDispatchHandler()@%p", SmmDriverDispatchHandler));
+
   HandleBuffer = NULL;
   Status = gBS->LocateHandleBuffer (
                   ByProtocol,
@@ -1340,6 +1344,7 @@ SmmDriverDispatchHandler (
                                   &Size
                                   );
         if (!EFI_ERROR (GetNextFileStatus)) {
+          DEBUG ((DEBUG_INFO, "    NameGuid = %g\n", NameGuid));
           if (Type == EFI_FV_FILETYPE_SMM_CORE) {
             //
             // If this is the SMM core fill in it's DevicePath & DeviceHandle

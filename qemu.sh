@@ -1,0 +1,1 @@
+qemu-system-x86_64 -machine q35,smm=on -drive if=pflash,format=raw,file=./Build/OvmfX64/DEBUG_CLANGPDB/FV/OVMF.fd -m 4096m -global ICH9-LPC.disable_s3=1 -debugcon file:/tmp/debug.log -global isa-debugcon.iobase=0x402

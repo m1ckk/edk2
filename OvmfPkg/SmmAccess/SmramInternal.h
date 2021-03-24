@@ -22,7 +22,8 @@
 typedef enum {
   DescIdxSmmS3ResumeState = 0,
   DescIdxMain             = 1,
-  DescIdxCount            = 2
+  DescIdxShadow           = 2,
+  DescIdxCount            = 3
 } DESCRIPTOR_INDEX;
 
 //

@@ -46,6 +46,7 @@ SetPageTableBase (
   IN UINTN   Cr3
   )
 {
+  DEBUG((DEBUG_INFO, "SMM CR3 (page table base address) = 0x%lx\n", Cr3));
   mInternalCr3 = Cr3;
 }
 
@@ -797,6 +798,9 @@ PatchSmmSaveStateMap (
 
   DEBUG ((DEBUG_INFO, "PatchSmmSaveStateMap:\n"));
   for (Index = 0; Index < mMaxNumberOfCpus - 1; Index++) {
+    DEBUG((DEBUG_INFO, "    Setting attributes for CPU 0x%x\n"));
+    DEBUG((DEBUG_INFO, "    Setting attributes for SMM CODE@0x%lx, for size 0x%x\n", 
+      mCpuHotPlugData.SmBase[Index] + SMM_HANDLER_OFFSET, TileCodeSize));
     //
     // Code
     //
@@ -811,6 +815,9 @@ PatchSmmSaveStateMap (
       EFI_MEMORY_XP
       );
 
+    DEBUG((DEBUG_INFO, "    Setting attributes for SMM DATA@0x%lx, for size 0x%x\n", 
+      mCpuHotPlugData.SmBase[Index] + SMM_HANDLER_OFFSET + TileCodeSize, 
+      TileSize - TileCodeSize));
     //
     // Data
     //

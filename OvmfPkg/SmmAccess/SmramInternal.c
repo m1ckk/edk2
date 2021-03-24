@@ -165,6 +165,7 @@ SmramAccessGetCapabilities (
   IN OUT EFI_SMRAM_DESCRIPTOR *SmramMap
   )
 {
+  DEBUG ((DEBUG_INFO, "SmramAccessGetCapabilities()@%p\n", SmramAccessGetCapabilities));
   UINTN  OriginalSize;
   UINT32 TsegMemoryBaseMb, TsegMemoryBase;
   UINT64 CommonRegionState;
@@ -215,12 +216,26 @@ SmramAccessGetCapabilities (
     SmramMap[DescIdxSmmS3ResumeState].PhysicalSize;
   SmramMap[DescIdxMain].CpuStart = SmramMap[DescIdxMain].PhysicalStart;
   SmramMap[DescIdxMain].PhysicalSize =
-    (TsegSizeBits == MCH_ESMRAMC_TSEG_8MB ? SIZE_8MB :
-     TsegSizeBits == MCH_ESMRAMC_TSEG_2MB ? SIZE_2MB :
-     TsegSizeBits == MCH_ESMRAMC_TSEG_1MB ? SIZE_1MB :
-     mQ35TsegMbytes * SIZE_1MB) -
+    (TsegSizeBits == MCH_ESMRAMC_TSEG_8MB ? SIZE_4MB :
+     TsegSizeBits == MCH_ESMRAMC_TSEG_2MB ? SIZE_1MB :
+     TsegSizeBits == MCH_ESMRAMC_TSEG_1MB ? SIZE_512KB :
+     mQ35TsegMbytes * SIZE_512KB) -
     SmramMap[DescIdxSmmS3ResumeState].PhysicalSize;
   SmramMap[DescIdxMain].RegionState = CommonRegionState;
+
+  //
+  // The third region is the SMM one, following the second.
+  //
+  SmramMap[DescIdxShadow].PhysicalStart =
+    SmramMap[DescIdxMain].PhysicalStart +
+    SmramMap[DescIdxMain].PhysicalSize;
+  SmramMap[DescIdxShadow].CpuStart = SmramMap[DescIdxShadow].PhysicalStart;
+  SmramMap[DescIdxShadow].PhysicalSize =
+    (TsegSizeBits == MCH_ESMRAMC_TSEG_8MB ? SIZE_4MB :
+     TsegSizeBits == MCH_ESMRAMC_TSEG_2MB ? SIZE_1MB :
+     TsegSizeBits == MCH_ESMRAMC_TSEG_1MB ? SIZE_512KB :
+     mQ35TsegMbytes * SIZE_512KB);
+  SmramMap[DescIdxShadow].RegionState = CommonRegionState | EFI_ALLOCATED;
 
   return EFI_SUCCESS;
 }

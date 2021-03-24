@@ -75,6 +75,7 @@ VariableNotifySmmWriteReady (
   ASSERT_EFI_ERROR (Status);
 }
 
+void __asan_init(void);
 /**
   Variable service MM driver entry point
 
@@ -91,6 +92,7 @@ VariableServiceInitialize (
   IN EFI_SYSTEM_TABLE                     *SystemTable
   )
 {
+  __asan_init();
   return MmVariableServiceInitialize ();
 }
 

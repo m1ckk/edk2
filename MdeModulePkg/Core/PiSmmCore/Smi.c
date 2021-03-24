@@ -101,6 +101,7 @@ SmiManage (
   IN OUT UINTN           *CommBufferSize  OPTIONAL
   )
 {
+  DEBUG ((DEBUG_INFO, "SmiManage()\n"));
   LIST_ENTRY   *Link;
   LIST_ENTRY   *Head;
   SMI_ENTRY    *SmiEntry;
@@ -111,16 +112,19 @@ SmiManage (
   Status = EFI_NOT_FOUND;
   SuccessReturn = FALSE;
   if (HandlerType == NULL) {
+    DEBUG ((DEBUG_INFO, "    SMI for root SMI handler\n"));
     //
     // Root SMI handler
     //
     SmiEntry = &mRootSmiEntry;
   } else {
+    DEBUG ((DEBUG_INFO, "    SMI for non-root SMI handler\n"));
     //
     // Non-root SMI handler
     //
     SmiEntry = SmmCoreFindSmiEntry ((EFI_GUID *) HandlerType, FALSE);
     if (SmiEntry == NULL) {
+      DEBUG ((DEBUG_INFO, "    No non-root SMI handler found.\n"));
       //
       // There is no handler registered for this interrupt source
       //

@@ -1014,6 +1014,7 @@ ExecuteSmmCoreFromSmram (
   IN     VOID                   *Context
   )
 {
+  DEBUG ((DEBUG_INFO, "ExecuteSmmCoreFromSmram()@%p\n", ExecuteSmmCoreFromSmram));
   EFI_STATUS                    Status;
   VOID                          *SourceBuffer;
   UINTN                         SourceSize;
@@ -1141,8 +1142,8 @@ ExecuteSmmCoreFromSmram (
 
       gSmmCorePrivate->PiSmmCoreImageBase = ImageContext.ImageAddress;
       gSmmCorePrivate->PiSmmCoreImageSize = ImageContext.ImageSize;
-      DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
-      DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageSize));
+      DEBUG ((DEBUG_INFO, "SMRAM: PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
+      DEBUG ((DEBUG_INFO, "SMRAM: PiSmmCoreImageSize - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageSize));
 
       gSmmCorePrivate->PiSmmCoreEntryPoint = ImageContext.EntryPoint;
 
@@ -1386,6 +1387,7 @@ GetFullSmramRanges (
   OUT UINTN     *FullSmramRangeCount
   )
 {
+  DEBUG ((DEBUG_INFO, "GetFullSmramRanges()@%p\n", GetFullSmramRanges));
   EFI_STATUS                        Status;
   EFI_SMM_CONFIGURATION_PROTOCOL    *SmmConfiguration;
   UINTN                             Size;
@@ -1439,9 +1441,11 @@ GetFullSmramRanges (
   }
 
   if (SmramReservedCount == 0) {
+    DEBUG ((DEBUG_INFO, "    SmramReservedCount == 0\n"));
     //
     // No reserved SMRAM entry from SMM Configuration Protocol.
     //
+    // Add one more entry for shadow memory
     *FullSmramRangeCount = SmramRangeCount + AdditionSmramRangeCount;
     Size = (*FullSmramRangeCount) * sizeof (EFI_SMRAM_DESCRIPTOR);
     FullSmramRanges = (EFI_SMRAM_DESCRIPTOR *) AllocateZeroPool (Size);
@@ -1449,6 +1453,14 @@ GetFullSmramRanges (
 
     Status = mSmmAccess->GetCapabilities (mSmmAccess, &Size, FullSmramRanges);
     ASSERT_EFI_ERROR (Status);
+
+    for (int i = 0; i < *FullSmramRangeCount; i++) {
+      DEBUG((DEBUG_INFO, "SMRAM Region: PhysicalStart = %p, CpuStart = %p, \
+        PhysicalSize = 0x%lx, RegionState = 0x%lx\n", 
+        FullSmramRanges[i].PhysicalStart, FullSmramRanges[i].CpuStart,
+        FullSmramRanges[i].PhysicalSize, FullSmramRanges[i].RegionState
+        ));
+    }
 
     return FullSmramRanges;
   }
@@ -1606,6 +1618,7 @@ SmmIplEntry (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
+  DEBUG ((DEBUG_INFO, "SmmIplEntry()@%p\n", SmmIplEntry));
   EFI_STATUS                      Status;
   UINTN                           Index;
   UINT64                          MaxSize;

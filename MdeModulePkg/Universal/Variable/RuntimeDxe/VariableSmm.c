@@ -85,6 +85,7 @@ SmmVariableSetVariable (
   IN VOID                    *Data
   )
 {
+  DEBUG ((DEBUG_INFO, "SmmVariableSetVariable()@%p\n", SmmVariableSetVariable));
   EFI_STATUS                 Status;
 
   //
@@ -425,6 +426,55 @@ SmmVariableGetStatistics (
   return EFI_SUCCESS;
 }
 
+/*
+__attribute__((noinline))
+static int TestASanStackBufferOverflow(int i, int j) {
+  volatile int stack_array[100];
+  stack_array[1] = 0;
+  return stack_array[argc + 100];  // BOOM
+}
+*/
+
+volatile char globalBuf[5] = {0, 1, 2, 3, 4};
+volatile int *p = 0;
+volatile int *ptr;
+
+__attribute__((noinline))
+static void FunctionThatEscapesLocalObject() {
+    int local[100];
+    ptr = &local[0];
+}
+
+__attribute__((__used__, noinline))
+static void TestASan(int i, int j) {
+    volatile char stackBuf[5] = {0, 1, 2, 3, 4};
+    switch (i) {
+    case 0: // Stack buffer overflow
+        asm volatile("mov $0x1100, %%ecx" : : : "ecx");
+        stackBuf[j] = 'c';
+        break;
+    case 1: // Global buffer overflow
+        asm volatile("mov $0x1101, %%ecx" : : : "ecx");
+        globalBuf[j] = 'c';
+        break;
+    case 2: // Use after return
+        asm volatile("mov $0x1102, %%ecx" : : : "ecx");
+        FunctionThatEscapesLocalObject();
+        ptr[j] = 100;
+        break;
+    case 3: // Use after scope
+        asm volatile("mov $0x1103, %%ecx" : : : "ecx");
+        {
+            int x = 0;
+            p = &x;
+        }
+        *p = 5;
+        break;
+    default:
+        DEBUG ((DEBUG_INFO, "checkAsan(): ERROR default switch case.\n"));
+    }
+}
+
 
 /**
   Communication service SMI Handler entry.
@@ -461,6 +511,8 @@ SmmVariableHandler (
   IN OUT UINTN                                            *CommBufferSize
   )
 {
+  DEBUG ((DEBUG_INFO, "SmmVariableHandler()@%p\n", SmmVariableHandler));
+
   EFI_STATUS                                              Status;
   SMM_VARIABLE_COMMUNICATE_HEADER                         *SmmVariableFunctionHeader;
   SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE                *SmmVariableHeader;
@@ -478,6 +530,11 @@ SmmVariableHandler (
   UINTN                                                   NameBufferSize;
   UINTN                                                   CommBufferPayloadSize;
   UINTN                                                   TempCommBufferSize;
+
+  // Testing ASan stack buffer overflow.
+  DEBUG((DEBUG_INFO, "Testing ASan...\n"));
+  // Modulo is used to force ASan think we access the buffer with a non-constant value.
+  TestASan(3, (*CommBufferSize % 20) + 5);
 
   //
   // If input is invalid, stop processing this SMI
@@ -1090,7 +1147,6 @@ SmmFtwNotificationEvent (
   return EFI_SUCCESS;
 }
 
-
 /**
   Variable Driver main entry point. The Variable driver places the 4 EFI
   runtime services in the EFI System Table and installs arch protocols
@@ -1140,7 +1196,7 @@ MmVariableServiceInitialize (
   mVariableBufferPayloadSize =  GetMaxVariableSize () +
                                   OFFSET_OF (SMM_VARIABLE_COMMUNICATE_VAR_CHECK_VARIABLE_PROPERTY, Name) -
                                   GetVariableHeaderSize (mVariableModuleGlobal->VariableGlobal.AuthFormat);
-
+ 
   Status = gMmst->MmAllocatePool (
                     EfiRuntimeServicesData,
                     mVariableBufferPayloadSize,
