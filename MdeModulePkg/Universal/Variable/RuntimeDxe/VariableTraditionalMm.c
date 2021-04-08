@@ -76,6 +76,11 @@ VariableNotifySmmWriteReady (
 }
 
 void __asan_init(void);
+VOID
+__sanitizer_init(void) {
+  __asan_init();
+}
+
 /**
   Variable service MM driver entry point
 
@@ -92,7 +97,7 @@ VariableServiceInitialize (
   IN EFI_SYSTEM_TABLE                     *SystemTable
   )
 {
-  __asan_init();
+  __sanitizer_init();
   return MmVariableServiceInitialize ();
 }
 
