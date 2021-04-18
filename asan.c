@@ -1,19 +1,24 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <Library/DebugLib.h>
+#include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
+//
 
-typedef unsigned int u32;
-typedef unsigned long long u64;
-typedef unsigned char u8;
+typedef UINT32 u32;
+typedef UINT64 u64;
+typedef UINT8 u8;
 typedef UINTN uptr;
 
-int __asan_option_detect_stack_use_after_return;
+int __asan_option_detect_stack_use_after_return = 1;
 void *__asan_shadow_memory_dynamic_address;
 
 // As defined for SMM, this is according to AddressSanitizer.cpp
 static const u64 kDefaultShadowScale = 3;
 #define SHADOW_SCALE kDefaultShadowScale
-#define SHADOW_OFFSET 0x7F800000UL
+// Starting at 0x7Fe00000 allows us to map the memory range 0x7F000000
+// to 0x7Fdfffff to shadow memory 0x7Fe00000 to 0x80000000
+#define SHADOW_OFFSET 0x7Fe00000UL
 #define AND_MASK 0xffffffffff000000UL
 #define SHADOW_GRANULARITY (1ULL << SHADOW_SCALE)
 #define MEM_TO_SHADOW(mem) (((mem & ~(AND_MASK)) >> SHADOW_SCALE) + (SHADOW_OFFSET))
@@ -59,39 +64,39 @@ void ReportGenericError(uptr pc, uptr bp, uptr sp, uptr addr, bool is_write,
     u8 shadow_val = *shadow_addr;
     //int bug_idx = 0;
 
-    DEBUG ((DEBUG_INFO, "ERROR: pc=%p, sp=%p, addr=%p, shadow value=%x, is_write=%x\n", (void *)pc, (void *)sp, (void *)addr, shadow_val, is_write));
+    DEBUG ((DEBUG_INFO, "[ASAN] ERROR: pc=%p, sp=%p, addr=%p, shadow value=%x, is_write=%x\n", (void *)pc, (void *)sp, (void *)addr, shadow_val, is_write));
     asm volatile("hlt");
 }
 
 
 #define ASAN_DECLARATION(type, is_write, size)                              \
 void __asan_report_exp_ ## type ## size(uptr addr) {                        \
-  DEBUG ((DEBUG_INFO, "%a", __func__));                                     \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
 }                                                                           \
 void __asan_report_exp_ ## type##_## size(uptr addr) {                      \
-  DEBUG ((DEBUG_INFO, "%a", __func__));                                     \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
 }                                                                           \
 void __asan_exp_ ## type ## size(uptr addr) {                               \
-  DEBUG ((DEBUG_INFO, "%a", __func__));                                     \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
 }                                                                           \
 void __asan_report_ ## type ## size(uptr addr) {                            \
-  DEBUG ((DEBUG_INFO, "%a", __func__));                                     \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
 }                                                                           \
 void __asan_report_ ## type##_## size(uptr addr) {                          \
-  DEBUG ((DEBUG_INFO, "%a", __func__));                                     \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
 }                                                                           \
 void __asan_ ## type ## size(uptr addr) {                                   \
-  DEBUG ((DEBUG_INFO, "%a", __func__));                                     \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
 }
@@ -111,142 +116,22 @@ ASAN_DECLARATION(store, true, 16);
 ASAN_DECLARATION(store, true, n);
 ASAN_DECLARATION(store, true, N);
 
-#define DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(class_id)                   \
-  void *__asan_stack_malloc_##class_id(uptr size) {                         \
-    return NULL;                                                            \
-  }                                                                         \
-  void __asan_stack_free_##class_id(uptr ptr, uptr size) {                  \
-  }
-
-DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(0);
-DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(1);
-DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(2);
-DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(3);
-DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(4);
-DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(5);
-DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(6);
-DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(7);
-DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(8);
-DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(9);
-DECLARE_STACK_MALLOC_FREE_WITH_CLASS_ID(10);
-
-// This structure is used to describe the source location of a place where
-// global was defined.
-struct __asan_global_source_location {
-  const char *filename;
-  int line_no;
-  int column_no;
-};
-
-// This structure describes an instrumented global variable.
-struct __asan_global {
-  uptr beg;                // The address of the global.
-  uptr size;               // The original size of the global.
-  uptr size_with_redzone;  // The size with the redzone.
-  const char *name;        // Name as a C string.
-  const char *module_name; // Module name as a C string. This pointer is a
-                           // unique identifier of a module.
-  uptr has_dynamic_init;   // Non-zero if the global has dynamic initializer.
-  struct __asan_global_source_location *location;  // Source location of a global,
-                                            // or NULL if it is unknown.
-  uptr odr_indicator;      // The address of the ODR indicator symbol.
-};
-
-void __asan_init(void) {
-  DEBUG ((DEBUG_INFO, "__asan_init()\n"));
-  __asan_shadow_memory_dynamic_address = (void *)(uptr)0x7F800000;
-/*
-  // To test whether paging is setup for the upper half of the 16MB TSEG.
-  char *buf = __asan_shadow_memory_dynamic_address;
-  buf[0] = 'a';
-  buf[0x1000] = 'b';
-  buf[0x10000] = 'c';
-  buf[0x100000] = 'd';
-  DEBUG ((DEBUG_INFO, "buf[0] = %c\n", buf[0]));
-  DEBUG ((DEBUG_INFO, "buf[0x1000] = %c\n", buf[0x1000]));
-  DEBUG ((DEBUG_INFO, "buf[0x10000] = %c\n", buf[0x10000]));
-  DEBUG ((DEBUG_INFO, "buf[0x100000] = %c\n", buf[0x100000]));
-  // To test whether paging is setup for the lower half of the 16MB TSEG.
-  buf = (void *)(uptr)0x7F000000;
-  buf[0] = 'a';
-  buf[0x1000] = 'b';
-  buf[0x10000] = 'c';
-  buf[0x100000] = 'd';
-  DEBUG ((DEBUG_INFO, "buf[0] = %c\n", buf[0]));
-  DEBUG ((DEBUG_INFO, "buf[0x1000] = %c\n", buf[0x1000]));
-  DEBUG ((DEBUG_INFO, "buf[0x10000] = %c\n", buf[0x10000]));
-  DEBUG ((DEBUG_INFO, "buf[0x100000] = %c\n", buf[0x100000]));
-*/
-}
-
-void __asan_before_dynamic_init(const char *module_name) {
-  DEBUG ((DEBUG_INFO, "__asan_before_dynamic_init()\n"));
-  DEBUG ((DEBUG_INFO, "    module_name = %s\n", module_name));
-}
-
-void __asan_after_dynamic_init() {
-  DEBUG ((DEBUG_INFO, "__asan_after_dynamic_init()\n"));
-}
-
 void __asan_version_mismatch_check_v8(void) {
-  DEBUG ((DEBUG_INFO, "__asan_version_mismatch_check_v8()\n"));
-}
-
-void __asan_register_globals(const struct __asan_global *globals, uptr n) {
-  DEBUG ((DEBUG_INFO, "__asan_register_globals()\n"));
-}
-
-void __asan_unregister_globals(const struct __asan_global *globals, uptr n) {
-  DEBUG ((DEBUG_INFO, "__asan_unregister_globals()\n"));
-}
-
-void __asan_register_image_globals(uptr *flag) {
-  DEBUG ((DEBUG_INFO, "__asan_register_image_globals()\n"));
-}
-
-void __asan_unregister_image_globals(uptr *flag) {
-  DEBUG ((DEBUG_INFO, "__asan_unregister_image_globals()\n"));
-}
-
-void __asan_register_elf_globals() {
-  DEBUG ((DEBUG_INFO, "__asan_register_elf_globals()\n"));
-}
-
-void __asan_unregister_elf_globals() {
-  DEBUG ((DEBUG_INFO, "__asan_unregister_elf_globals()\n"));
+  DEBUG ((DEBUG_INFO, "[ASAN] __asan_version_mismatch_check_v8()\n"));
 }
 
 void __asan_handle_no_return(void) {
+  DEBUG ((DEBUG_INFO, "__asan_handle_no_return()\n"));
+  asm volatile("hlt");
 }
 
-////////////////////////////////////////////////////////////////
-////// Copied from /mnt/part5/llvm-project/compiler-rt/lib/interception/interception_win.cc
-////////////////////////////////////////////////////////////////
-
-/*
 static uptr RoundUpTo(uptr size, uptr boundary) {
   return (size + boundary - 1) & ~(boundary - 1);
 }
 
-
-// FIXME: internal_str* and internal_mem* functions should be moved from the
-// ASan sources into interception/.
-
-static size_t _strlen(const char *str) {
-  const char* p = str;
-  while (*p != '\0') ++p;
-  return p - str;
+static uptr RoundDownTo(uptr x, uptr boundary) {
+  return x & ~(boundary - 1);
 }
-
-static char* _strchr(char* str, char c) {
-  while (*str) {
-    if (*str == c)
-      return str;
-    ++str;
-  }
-  return NULL;
-}
-*/
 
 static void _memset(void *p, int value, size_t sz) {
   for (size_t i = 0; i < sz; ++i)
@@ -259,10 +144,6 @@ static void _memcpy(void *dst, void *src, size_t sz) {
   for (size_t i = 0; i < sz; ++i)
     dst_c[i] = src_c[i];
 }
-
-////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////
 
 void *__asan_memcpy(uptr dst, uptr src, size_t size) {
   _memcpy((void *)dst, (void *)src, size);
@@ -279,59 +160,275 @@ void *__asan_memset(void *s, int c, size_t n) {
   _memset(s, c, n);
   return s;
 }
-void __sanitizer_ptr_sub(void *a, void *b) {
-}
 
-void __sanitizer_ptr_cmp(void *a, void *b) {
-}
+// This structure is used to describe the source location of a place where
+// global was defined.
+struct __asan_global_source_location {
+  const char *filename;
+  int line_no;
+  int column_no;
+};
+
+// This structure describes an instrumented global variable.
+typedef struct __asan_global {
+  uptr beg;                // The address of the global.
+  uptr size;               // The original size of the global.
+  uptr size_with_redzone;  // The size with the redzone.
+  const char *name;        // Name as a C string.
+  const char *module_name; // Module name as a C string. This pointer is a
+                           // unique identifier of a module.
+  uptr has_dynamic_init;   // Non-zero if the global has dynamic initializer.
+  struct __asan_global_source_location *location;  // Source location of a global,
+                                            // or NULL if it is unknown.
+  uptr odr_indicator;      // The address of the ODR indicator symbol.
+} __asan_global;
 
 void __asan_set_shadow_00(uptr addr, uptr size) {
+  _memset((void *)addr, 0, size);
 }
 
 void __asan_set_shadow_f1(uptr addr, uptr size) {
+  _memset((void *)addr, 0xf1, size);
 }
 
 void __asan_set_shadow_f2(uptr addr, uptr size) {
+  _memset((void *)addr, 0xf2, size);
 }
 
 void __asan_set_shadow_f3(uptr addr, uptr size) {
+  _memset((void *)addr, 0xf3, size);
 }
 
 void __asan_set_shadow_f5(uptr addr, uptr size) {
+  _memset((void *)addr, 0xf5, size);
 }
 
 void __asan_set_shadow_f8(uptr addr, uptr size) {
+  _memset((void *)addr, 0xf8, size);
 }
 
-void __asan_allocas_unpoison() {
-}
-
-void __asan_alloca_poison() {
-}
-
-void __asan_poison_stack_memory() {
-}
-
-void __asan_unpoison_stack_memory() {
-}
-
+// Fast versions of PoisonShadow and PoisonShadowPartialRightRedzone that
+// assume that memory addresses are properly aligned. Use in
+// performance-critical code with care.
+__attribute__((always_inline)) void FastPoisonShadow(uptr aligned_beg, uptr aligned_size,
+                                    u8 value) {
+    uptr shadow_beg = MEM_TO_SHADOW(aligned_beg);
+    uptr shadow_end = MEM_TO_SHADOW(
+    aligned_beg + aligned_size - SHADOW_GRANULARITY) + 1;
 /*
-uptr RoundDownTo(uptr size, uptr boundary) {
-    return 0;
-}
-void PoisonRedZones(const struct __asan_global g) {
-}
-
-void FastPoisonShadowPartialRightRedzone(
-        uptr aligned_addr, uptr size, uptr redzone_size, u8 value) {
-}
-
-void FastPoisonShadow(uptr aligned_beg, uptr aligned_size,
-        u8 value) {
-}
-
-void ReportGenericError(uptr pc, uptr bp, uptr sp, uptr addr, bool is_write,
-        uptr access_size, u32 exp, bool fatal) {
-}
-
+    DEBUG((DEBUG_INFO, "  shadow_beg = %p\n", (void *)shadow_beg));
+    DEBUG((DEBUG_INFO, "  shadow_end = %p\n", (void *)shadow_end));
 */
+    _memset((void *)shadow_beg, value, shadow_end - shadow_beg);
+}
+
+// Is called when the global.size is unequal to alignment_size
+__attribute__((always_inline)) void FastPoisonShadowPartialRightRedzone(
+    uptr aligned_addr, uptr size, uptr redzone_size, u8 value) {
+    unsigned poison_partial = 1; // flags()->poison_partial;
+    u8 *shadow = (u8*)MEM_TO_SHADOW(aligned_addr);
+    for (uptr i = 0; i < redzone_size; i += SHADOW_GRANULARITY, shadow++) {
+        if (i + SHADOW_GRANULARITY <= size) {
+            *shadow = 0;  // fully addressable
+        } else if (i >= size) {
+            *shadow = (SHADOW_GRANULARITY == 128) ? 0xff : value;  // unaddressable
+        } else {
+            // first size-i bytes are addressable
+            *shadow = poison_partial ? (u8)(size - i) : 0;
+        }
+    }
+}
+
+void PoisonRedZones(const struct __asan_global g) {
+    uptr aligned_size = RoundUpTo(g.size, SHADOW_GRANULARITY);
+    FastPoisonShadow(g.beg + aligned_size, g.size_with_redzone - aligned_size,
+                     kAsanGlobalRedzoneMagic);
+    if (g.size != aligned_size) {
+        FastPoisonShadowPartialRightRedzone(
+            g.beg + RoundDownTo(g.size, SHADOW_GRANULARITY),
+            g.size % SHADOW_GRANULARITY,
+            SHADOW_GRANULARITY,
+            kAsanGlobalRedzoneMagic);
+    }
+}
+
+void __asan_register_globals(const struct __asan_global *globals, uptr n) {
+    int i;
+    for (i = 0; i < n; i++) {
+        DEBUG ((DEBUG_INFO, "[ASAN] global.beg = 0x%lx\n", globals[i].beg));
+        DEBUG ((DEBUG_INFO, "[ASAN] global.size = 0x%lx\n", globals[i].size));
+        DEBUG ((DEBUG_INFO, "[ASAN] global.size_with_redzone = 0x%lx\n", globals[i].size_with_redzone));
+        DEBUG ((DEBUG_INFO, "[ASAN] global.name = 0x%p\n", globals[i].name));
+        DEBUG ((DEBUG_INFO, "[ASAN] global.module_name = 0x%p\n", globals[i].module_name));
+        DEBUG ((DEBUG_INFO, "[ASAN] global.name = %a\n", globals[i].name));
+        DEBUG ((DEBUG_INFO, "[ASAN] global.module_name = %a\n", globals[i].module_name));
+        DEBUG ((DEBUG_INFO, "[ASAN] global.location->filename = %a\n", globals[i].location->filename));
+        DEBUG ((DEBUG_INFO, "[ASAN] global.location->line_no = %d\n", globals[i].location->line_no));
+        DEBUG ((DEBUG_INFO, "[ASAN] global.location->column_no = %d\n", globals[i].location->column_no));
+        PoisonRedZones(globals[i]);
+    }
+}
+
+// For COFF, globals are put in ASAN$GL, we then add two sections below
+// and above ASAN$GL, due to sorting after the dollar sign and compute the 
+// amount of __asan_global structs that way.
+#pragma section(".ASAN$GA", read, write)
+#pragma section(".ASAN$GZ", read, write)
+__asan_global __asan_globals_start __attribute__ ((section (".ASAN$GA"))) = {};
+__asan_global __asan_globals_end __attribute__ ((section (".ASAN$GZ")))= {};
+#pragma comment(linker, "/merge:.ASAN=.data")
+
+static void call_on_globals(void) {
+  __asan_global *start = &__asan_globals_start + 1;
+  __asan_global *end = &__asan_globals_end;
+  uptr bytediff = (uptr)end - (uptr)start;
+  if (bytediff % sizeof(__asan_global) != 0) {
+#if defined(SANITIZER_DLL_THUNK) || defined(SANITIZER_DYNAMIC_RUNTIME_THUNK)
+    __debugbreak();
+#else
+    DEBUG((DEBUG_INFO, "[ASAN] corrupt asan global array\n"));
+#endif
+  }
+  // We know end >= start because the linker sorts the portion after the dollar
+  // sign alphabetically.
+  uptr n = end - start;
+  __asan_register_globals(start, n);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+///////         START - FakeStack implementation
+//////////////////////////////////////////////////////////////////////////////
+const UINTN FAKE_STACK_START = 0x7F900000ULL;
+const UINTN FAKE_STACK_SIZE = 8192;
+const UINTN NR_FAKE_STACKS = 8;
+
+// Fake stack frame contains local variables of one function.
+typedef struct FakeFrame {
+  UINTN magic;              // Modified by the instrumented code.
+  UINTN descr;              // Modified by the instrumented code.
+  UINTN pc;                 // Modified by the instrumented code.
+  UINTN flags;              // Flags that determine whether the frame is active or not.
+} FakeFrame;
+
+// FakeStack contains FakeFrames and is used to detect return-after-free errors.
+typedef struct FakeStack {
+  FakeFrame *FakeFrames[NR_FAKE_STACKS];
+  int IndexFakeFrame[NR_FAKE_STACKS];
+  int NrFakeFrames[NR_FAKE_STACKS];
+} FakeStack;
+
+FakeStack __asan_fs;
+
+// Given an index and class ID, return a pointer to Nth FakeFrame that belongs
+// to the given class ID. The corresponding FakeStack is computed by adding
+// the base address (FAKE_STACK_START) to the ID multiplied by the size of a 
+// single FakeStack size (FAKE_STACK_SIZE * id), then find the corresponding
+// FakeFrame, by computing the size of a single FakeFrame and multiplying that
+// with the given index ((64 << id) * index).
+#define GET_FRAME(index, id) (FakeFrame *)(FAKE_STACK_START + \
+    (FAKE_STACK_SIZE * id) + (64 << id) * index)
+
+static void init_fake_stack(void) {
+    for (int i = 0; i < NR_FAKE_STACKS; i++) {
+        __asan_fs.IndexFakeFrame[i] = 0;
+        __asan_fs.NrFakeFrames[i] = FAKE_STACK_SIZE / (64 << i);
+        __asan_fs.FakeFrames[i] = (FakeFrame *)(FAKE_STACK_START + 
+            i * FAKE_STACK_SIZE);
+        // Zero out the memory, so all flags are 0.
+        _memset((void *)FAKE_STACK_START, 0, FAKE_STACK_SIZE * NR_FAKE_STACKS);
+/*
+        DEBUG ((DEBUG_INFO, "init_fake_stack(): __asan_fs.IndexFakeFrame[%d] =  %d\n", i, __asan_fs.IndexFakeFrame[i]));
+        DEBUG ((DEBUG_INFO, "init_fake_stack(): __asan_fs.NrFakeFrames[%d] =    %d\n", i, __asan_fs.NrFakeFrames[i]));
+        DEBUG ((DEBUG_INFO, "init_fake_stack(): __asan_fs.FakeFrames[%d] =      %p\n", i, __asan_fs.FakeFrames[i]));
+*/
+    }
+}
+
+static FakeFrame *allocFakeFrame(UINTN class_id) {
+    FakeFrame *ff;
+    int nr_fake_frames = __asan_fs.NrFakeFrames[class_id];
+    // We start with the saved index, which is the index after the most 
+    // recently allocated frame, to delay reusing the frame that was just
+    // deallocated.
+    int index = __asan_fs.IndexFakeFrame[class_id];
+    int i = 0;
+/*
+    DEBUG ((DEBUG_INFO, "allocFakeFrame(): class_id =       %lu\n", class_id));
+    DEBUG ((DEBUG_INFO, "allocFakeFrame(): nr_fake_frames = %lu\n", nr_fake_frames));
+    DEBUG ((DEBUG_INFO, "allocFakeFrame(): index =          %d\n", index));
+*/
+    while (i < nr_fake_frames) {
+        ff = GET_FRAME(index, class_id);
+/*
+        DEBUG ((DEBUG_INFO, "allocFakeFrame(): ff =         %p\n", ff));
+        DEBUG ((DEBUG_INFO, "allocFakeFrame(): ff->flags =  %x\n", ff->flags));
+        DEBUG ((DEBUG_INFO, "allocFakeFrame(): ff->magic =  %p\n", ff->magic));
+        DEBUG ((DEBUG_INFO, "allocFakeFrame(): index =      %d\n", index));
+        DEBUG ((DEBUG_INFO, "allocFakeFrame(): i =          %d\n", i));
+*/
+        // Allocate the frame if it is inactive.
+        if (!ff->flags) {
+            ff->flags = 1;
+            // That way we begin looking for new frames after the most recently
+            // allocated frame.
+            __asan_fs.IndexFakeFrame[class_id] = (index + 1) % nr_fake_frames;
+            FastPoisonShadow((UINTN)ff, 64 << class_id, 0);
+            return ff;
+        }
+        i++;
+        index = (index + 1) % nr_fake_frames;
+    }
+    // No FakeFrames left for class_id
+    DEBUG ((DEBUG_INFO, "allocFakeFrame(): ERROR\n"));
+    asm volatile("hlt");
+    return NULL;
+}
+
+static void freeFakeFrame(UINTN ptr, UINTN class_id) {
+    ASSERT ((UINTN)__asan_fs.FakeFrames[class_id] <= ptr);
+    ASSERT (ptr < (UINTN)(__asan_fs.FakeFrames[class_id] + FAKE_STACK_SIZE));
+
+    FakeFrame *ff = (FakeFrame *)ptr;
+/*
+    DEBUG ((DEBUG_INFO, "freeFakeFrame(): ff =         %p\n", ff));
+    DEBUG ((DEBUG_INFO, "freeFakeFrame(): class_id =   %lu\n", class_id));
+    DEBUG ((DEBUG_INFO, "freeFakeFrame(): ptr =        %p\n", ptr));
+*/
+    ff->flags = 0;
+    FastPoisonShadow((UINTN)ff, 64 << class_id, kAsanStackAfterReturnMagic);
+}
+
+
+#define DEFINE_STACK_MALLOC_FREE_WITH_CLASS_ID(class_id)                    \
+void *__asan_stack_malloc_##class_id(uptr size) {                           \
+    return allocFakeFrame(class_id);                                        \
+}                                                                           \
+void __asan_stack_free_##class_id(uptr ptr, uptr size) {                    \
+    freeFakeFrame(ptr, class_id);                                           \
+}
+
+DEFINE_STACK_MALLOC_FREE_WITH_CLASS_ID(0);
+DEFINE_STACK_MALLOC_FREE_WITH_CLASS_ID(1);
+DEFINE_STACK_MALLOC_FREE_WITH_CLASS_ID(2);
+DEFINE_STACK_MALLOC_FREE_WITH_CLASS_ID(3);
+DEFINE_STACK_MALLOC_FREE_WITH_CLASS_ID(4);
+DEFINE_STACK_MALLOC_FREE_WITH_CLASS_ID(5);
+DEFINE_STACK_MALLOC_FREE_WITH_CLASS_ID(6);
+DEFINE_STACK_MALLOC_FREE_WITH_CLASS_ID(7);
+
+
+//////////////////////////////////////////////////////////////////////////////
+///////         END - FakeStack implementation
+//////////////////////////////////////////////////////////////////////////////
+
+
+
+
+void __asan_init(void) {
+  DEBUG ((DEBUG_INFO, "[ASAN] __asan_init()\n"));
+  __asan_shadow_memory_dynamic_address = (void *)(uptr)SHADOW_OFFSET;
+  call_on_globals();
+  init_fake_stack();
+}
+

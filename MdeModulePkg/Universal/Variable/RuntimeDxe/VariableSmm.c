@@ -426,15 +426,6 @@ SmmVariableGetStatistics (
   return EFI_SUCCESS;
 }
 
-/*
-__attribute__((noinline))
-static int TestASanStackBufferOverflow(int i, int j) {
-  volatile int stack_array[100];
-  stack_array[1] = 0;
-  return stack_array[argc + 100];  // BOOM
-}
-*/
-
 volatile char globalBuf[5] = {0, 1, 2, 3, 4};
 volatile int *p = 0;
 volatile int *ptr;
@@ -450,20 +441,20 @@ static void TestASan(int i, int j) {
     volatile char stackBuf[5] = {0, 1, 2, 3, 4};
     switch (i) {
     case 0: // Stack buffer overflow
-        asm volatile("mov $0x1100, %%ecx" : : : "ecx");
+        DEBUG ((DEBUG_INFO, "TestASan(): Stack buffer overflow\n"));
         stackBuf[j] = 'c';
         break;
     case 1: // Global buffer overflow
-        asm volatile("mov $0x1101, %%ecx" : : : "ecx");
+        DEBUG ((DEBUG_INFO, "TestASan(): Global buffer overflow\n"));
         globalBuf[j] = 'c';
         break;
     case 2: // Use after return
-        asm volatile("mov $0x1102, %%ecx" : : : "ecx");
+        DEBUG ((DEBUG_INFO, "TestASan(): Use after return\n"));
         FunctionThatEscapesLocalObject();
         ptr[j] = 100;
         break;
     case 3: // Use after scope
-        asm volatile("mov $0x1103, %%ecx" : : : "ecx");
+        DEBUG ((DEBUG_INFO, "TestASan(): Use after scope\n"));
         {
             int x = 0;
             p = &x;
@@ -471,7 +462,7 @@ static void TestASan(int i, int j) {
         *p = 5;
         break;
     default:
-        DEBUG ((DEBUG_INFO, "checkAsan(): ERROR default switch case.\n"));
+        DEBUG ((DEBUG_INFO, "TestASan(): ERROR default switch case.\n"));
     }
 }
 
@@ -534,7 +525,7 @@ SmmVariableHandler (
   // Testing ASan stack buffer overflow.
   DEBUG((DEBUG_INFO, "Testing ASan...\n"));
   // Modulo is used to force ASan think we access the buffer with a non-constant value.
-  TestASan(3, (*CommBufferSize % 20) + 5);
+  TestASan(2, (*CommBufferSize % 20) + 6);
 
   //
   // If input is invalid, stop processing this SMI

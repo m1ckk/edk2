@@ -1,3 +1,10 @@
+# Adjustments for ASan:
+# Add ASan arguments to the relevant .inf files and include asan.c
+# Remove -flto from DEBUG_CLANGPDB_X64_CC_FLAGS, as this results in missing COMDAT
+# sections
+
+# General steps to build project:
+
 git clone https://github.com/m1ckk/edk2 edk2 && cd edk2
 
 git submodule update --init --recursive 
