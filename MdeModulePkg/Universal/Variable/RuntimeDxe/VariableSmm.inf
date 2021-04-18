@@ -60,7 +60,8 @@
   TcgMorLockSmm.c
   SpeculationBarrierSmm.c
   VariableLockRequestToLock.c
-  ../../../../asan.c
+  #../../../../asan.c
+  ../../../../msan.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -155,8 +156,6 @@
   VariableSmmExtra.uni
 
 [BuildOptions]
-  # Add our skeleton pass
-  #*_*_*_CC_FLAGS = -Xclang -load -Xclang /mnt/part5/llvm-project/build/lib/LLVMSkeleton.so
-  #*_*_*_CC_FLAGS = -fsanitize=address -mllvm -asan-globals=0 -mllvm -asan-smm-tianocore=1
-  *_*_*_CC_FLAGS = -fsanitize=address -mllvm -asan-smm-tianocore=1
-
+  #*_*_*_CC_FLAGS = -fsanitize=address -mllvm -asan-smm-tianocore=1
+  *_*_*_CC_FLAGS = -fsanitize=memory -mllvm -msan-smm-tianocore=1 -fsanitize-blacklist=/mnt/part5/edk2-msan/msan_blacklist.txt
+  #*_*_*_CC_FLAGS = -fsanitize=cfi -fsanitize-blacklist=/mnt/part5/edk2-sfi/cfi_blacklist.txt#-fno-sanitize=cfi-icall#cfi-cast-strict,cfi-derived-cast#,cfi-mfcall,cfi-unrelated-cast,cfi-nvcall,cfi-vcall
