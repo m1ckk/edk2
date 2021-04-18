@@ -1,0 +1,12 @@
+# Don't instrument the runtime
+src:*msan.c
+# Code which executes before we get to our entry point of a library
+# /mnt/part5/edk2-msan/Build/OvmfX64/DEBUG_CLANGPDB/X64/MdeModulePkg/Universal/Variable/RuntimeDxe/VariableSmm/DEBUG/AutoGen.c
+src:*AutoGen.c
+fun:ProcessModuleEntryPointList
+fun:ProcessLibraryConstructorList
+fun:SmmServicesTableLibConstructor
+# Added after looking at the logging of where we are halting due to MSan
+fun:InternalAllocatePool
+fun:DevicePathLibConstructor
+fun:GetPcdProtocol

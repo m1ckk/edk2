@@ -34,6 +34,7 @@
 **/
 
 #include "PiSmmCore.h"
+#include "Msan.h"
 
 //
 // SMM Dispatcher Data structures
@@ -286,6 +287,63 @@ GetPeCoffImageFixLoadingAssignedAddress(
   DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address %x, Status = %r\n", FixLoadingAddress, Status));
   return Status;
 }
+
+// Function which peforms poisoning of SMM drivers that are loaded by PiSmmCore.efi.
+void SmmPoisonSections(PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext, UINTN BaseAddress) {
+  UINTN                              SectionHeaderOffset;
+  EFI_STATUS                         Status;
+  EFI_IMAGE_SECTION_HEADER           SectionHeader;
+  EFI_IMAGE_OPTIONAL_HEADER_UNION    *ImgHdr;
+  UINT16                             NumberOfSections;
+  UINTN                              Size;
+
+  DEBUG ((DEBUG_INFO, "SmmPoisonSections()\n"));
+
+  //
+  // Get PeHeader pointer
+  //
+  ImgHdr = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)((CHAR8* )ImageContext->Handle + ImageContext->PeCoffHeaderOffset);
+  SectionHeaderOffset = ImageContext->PeCoffHeaderOffset +
+                      sizeof (UINT32) +
+                      sizeof (EFI_IMAGE_FILE_HEADER) +
+                      ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader;
+  NumberOfSections = ImgHdr->Pe32.FileHeader.NumberOfSections;
+
+  for (int i = 0; i < NumberOfSections; i++) {
+    //
+    // Read section header from file
+    //
+    Size = sizeof (EFI_IMAGE_SECTION_HEADER);
+    Status = ImageContext->ImageRead (
+                            ImageContext->Handle,
+                            SectionHeaderOffset,
+                            &Size,
+                            &SectionHeader
+                            );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_INFO, "SmmPoisonSections(): ERROR\n"));
+    }
+
+    DEBUG ((DEBUG_INFO, "For pdb %a\n", ImageContext->PdbPointer));
+    DEBUG ((DEBUG_INFO, "Section header name: %a\n", SectionHeader.Name));
+    DEBUG ((DEBUG_INFO, "  PhysicalAddress = 0x%x\n", SectionHeader.Misc));
+    DEBUG ((DEBUG_INFO, "  VirtualAddress = 0x%x\n", SectionHeader.VirtualAddress));
+    DEBUG ((DEBUG_INFO, "  SizeOfRawData = 0x%x\n", SectionHeader.SizeOfRawData));
+    CHAR8 *DriverName = ImageContext->PdbPointer;
+    UINTN DriverNameLength = AsciiStrSize(DriverName);
+    // Only apply poisoning for VariableSmm.efi for now.
+    if (AsciiStrCmp(&(DriverName[DriverNameLength - AsciiStrSize("VariableSmm.pdb")]),
+            "VariableSmm.pdb") == 0) {
+      PoisonSection(ImageContext->PdbPointer, (CHAR8 *)SectionHeader.Name, 
+        BaseAddress + SectionHeader.VirtualAddress, SectionHeader.Misc.VirtualSize);
+    }
+
+    SectionHeaderOffset += sizeof (EFI_IMAGE_SECTION_HEADER);
+  }
+}
+
+
+
 /**
   Loads an EFI image into SMRAM.
 
@@ -643,8 +701,8 @@ SmmLoadImage (
     UINTN Index;
     UINTN StartIndex;
     CHAR8 EfiFileName[256];
-
-
+    // Poison the relevant memory regions of the SMM driver just before executing it.
+    SmmPoisonSections(&ImageContext, ImageContext.ImageAddress);
     DEBUG ((DEBUG_INFO | DEBUG_LOAD,
            "Loading SMM driver at 0x%11p with image size 0x%lx EntryPoint=0x%11p ",
            (VOID *)(UINTN) ImageContext.ImageAddress,
