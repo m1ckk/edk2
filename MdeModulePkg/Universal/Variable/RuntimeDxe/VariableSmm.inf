@@ -156,12 +156,6 @@
 # This is used for the instrumentation of libraries, as we append this to all the *.sanitizer.inf library files.
 # We enable a certain build option and then compile all the libraries with these added build options.
 [BuildOptions]
-<<<<<<< HEAD
   *_*_*_CC_FLAGS = $(SANITIZER_CC_FLAGS)
   *_*_*_CC_FLAGS = $(SANITIZER_BLACKLIST)
   #*_*_*_CC_FLAGS = -mllvm -msan-smm-tianocore-replace-external-functions=1
-=======
-  #*_*_*_CC_FLAGS = -fsanitize=address -mllvm -asan-smm-tianocore=1
-  *_*_*_CC_FLAGS = -fsanitize=memory -mllvm -msan-smm-tianocore=1 -fsanitize-blacklist=/mnt/part5/edk2-msan/msan_blacklist.txt
-  #*_*_*_CC_FLAGS = -fsanitize=cfi -fsanitize-blacklist=/mnt/part5/edk2-sfi/cfi_blacklist.txt#-fno-sanitize=cfi-icall#cfi-cast-strict,cfi-derived-cast#,cfi-mfcall,cfi-unrelated-cast,cfi-nvcall,cfi-vcall
->>>>>>> f17424a7f53498fffa9c9cfb6decb67a61f09be3
