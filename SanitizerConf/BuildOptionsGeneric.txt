@@ -1,0 +1,6 @@
+# This is used for the instrumentation of libraries, as we append this to all the *.sanitizer.inf library files.
+# We enable a certain build option and then compile all the libraries with these added build options.
+[BuildOptions]
+  *_*_*_CC_FLAGS = $(SANITIZER_CC_FLAGS)
+  *_*_*_CC_FLAGS = $(SANITIZER_BLACKLIST)
+  #*_*_*_CC_FLAGS = -mllvm -msan-smm-tianocore-replace-external-functions=1

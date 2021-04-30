@@ -72,6 +72,9 @@
 !endif
 !endif
 
+  # For sanitizing SMM in TianoCore.
+  DEFINE SANITIZE_SMM           = FALSE
+
 [BuildOptions]
   GCC:RELEASE_*_*_CC_FLAGS             = -DMDEPKG_NDEBUG
   INTEL:RELEASE_*_*_CC_FLAGS           = /D MDEPKG_NDEBUG
@@ -107,6 +110,11 @@
   XCODE:*_*_*_DLINK_FLAGS = -seg1addr 0x1000 -segalign 0x1000
   XCODE:*_*_*_MTOC_FLAGS = -align 0x1000
   CLANGPDB:*_*_*_DLINK_FLAGS = /ALIGN:4096
+
+!if $(SANITIZE_SMM) == TRUE
+[BuildOptions.common.EDKII.DXE_SMM_DRIVER]
+  CLANGPDB:*_*_*_CC_FLAGS = -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer
+!endif
 
 ################################################################################
 #
@@ -459,6 +467,7 @@
   DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
 !endif
   PciLib|OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf
+  NULL|MdePkg/Library/MsanLib/MsanLib.inf
 
 ################################################################################
 #
@@ -996,9 +1005,16 @@
   #
   OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesSmm.inf
   MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteSmm.inf
-  MdeModulePkg/Universal/Variable/RuntimeDxe/VariableSmmRuntimeDxe.inf
   MdeModulePkg/Universal/Variable/RuntimeDxe/VariableSmm.inf {
+
     <LibraryClasses>
+!if $(SANITIZE_SMM) == FALSE
+
+      NULL|MdeModulePkg/Library/VarCheckUefiLib/VarCheckUefiLib.inf
+      NULL|MdeModulePkg/Library/VarCheckPolicyLib/VarCheckPolicyLib.inf
+
+!else # !if $(SANITIZE_SMM) == FALSE
+
       NULL|MdeModulePkg/Library/VarCheckUefiLib/VarCheckUefiLib.sanitizer.inf
       NULL|MdeModulePkg/Library/VarCheckPolicyLib/VarCheckPolicyLib.sanitizer.inf
       PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.sanitizer.inf
@@ -1010,26 +1026,17 @@
       SmmMemLib|MdePkg/Library/SmmMemLib/SmmMemLib.sanitizer.inf
       MmServicesTableLib|MdePkg/Library/MmServicesTableLib/MmServicesTableLib.sanitizer.inf
       SmmServicesTableLib|MdePkg/Library/SmmServicesTableLib/SmmServicesTableLib.sanitizer.inf
-!ifdef $(DEBUG_ON_SERIAL_PORT)
-      DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.sanitizer.inf
-!else
-      DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.sanitizer.inf
-!endif
       CpuExceptionHandlerLib|UefiCpuPkg/Library/CpuExceptionHandlerLib/SmmCpuExceptionHandlerLib.sanitizer.inf
 !if $(SOURCE_DEBUG_ENABLE) == TRUE
       DebugAgentLib|SourceLevelDebugPkg/Library/DebugAgent/SmmDebugAgentLib.sanitizer.inf
 !endif
       BaseCryptLib|CryptoPkg/Library/BaseCryptLib/SmmCryptLib.sanitizer.inf
       PciLib|OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.sanitizer.inf
-      BaseLib|MdePkg/Library/BaseLib/BaseLib.sanitizer.inf
+
       BaseMemoryLib|MdePkg/Library/BaseMemoryLibRepStr/BaseMemoryLibRepStr.sanitizer.inf
-      PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.sanitizer.inf
-      DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.sanitizer.inf
-      PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.sanitizer.inf
+      BaseLib|MdePkg/Library/BaseLib/BaseLib.sanitizer.inf
       IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsicSev.sanitizer.inf
-      DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.sanitizer.inf
       UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.sanitizer.inf
-      UefiDriverEntryPoint|MdePkg/Library/UefiDriverEntryPoint/UefiDriverEntryPoint.sanitizer.inf
       PciExpressLib|MdePkg/Library/BasePciExpressLib/BasePciExpressLib.sanitizer.inf
       PciCf8Lib|MdePkg/Library/BasePciCf8Lib/BasePciCf8Lib.sanitizer.inf
       UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.sanitizer.inf
@@ -1040,9 +1047,24 @@
       VarCheckLib|MdeModulePkg/Library/VarCheckLib/VarCheckLib.sanitizer.inf
       VariablePolicyHelperLib|MdeModulePkg/Library/VariablePolicyHelperLib/VariablePolicyHelperLib.sanitizer.inf
       VariablePolicyLib|MdeModulePkg/Library/VariablePolicyLib/VariablePolicyLib.sanitizer.inf
+      UefiDriverEntryPoint|MdePkg/Library/UefiDriverEntryPoint/UefiDriverEntryPoint.sanitizer.inf
       SynchronizationLib|MdePkg/Library/BaseSynchronizationLib/BaseSynchronizationLib.sanitizer.inf
       AuthVariableLib|MdeModulePkg/Library/AuthVariableLibNull/AuthVariableLibNull.sanitizer.inf
+      DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.sanitizer.inf
+!ifdef $(DEBUG_ON_SERIAL_PORT)
+      DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.sanitizer.inf
+!else
+      DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.sanitizer.inf
+!endif
+      PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.sanitizer.inf
+
+
+      NULL|MdePkg/Library/MsanLib/MsanLib.inf
+
+!endif # !if $(SANITIZE_SMM) == FALSE
+
   }
+
   MdeModulePkg/Universal/Variable/RuntimeDxe/VariableSmmRuntimeDxe.inf
 
 !else

@@ -75,7 +75,8 @@ VariableNotifySmmWriteReady (
   ASSERT_EFI_ERROR (Status);
 }
 
-void __asan_init(void);
+// Weak definition that can be overridden when we actually use ASan.
+void __attribute__((weak)) __asan_init(void) {}
 VOID
 __sanitizer_init(void) {
   __asan_init();
@@ -97,6 +98,7 @@ VariableServiceInitialize (
   IN EFI_SYSTEM_TABLE                     *SystemTable
   )
 {
+  DEBUG((DEBUG_INFO, "VariableServiceInitialize()\n"));
   __sanitizer_init();
   return MmVariableServiceInitialize ();
 }

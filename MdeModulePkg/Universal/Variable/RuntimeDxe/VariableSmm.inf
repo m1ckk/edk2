@@ -60,7 +60,6 @@
   TcgMorLockSmm.c
   SpeculationBarrierSmm.c
   VariableLockRequestToLock.c
-  ../../../../asan.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -154,9 +153,9 @@
 [UserExtensions.TianoCore."ExtraFiles"]
   VariableSmmExtra.uni
 
+# This is used for the instrumentation of libraries, as we append this to all the *.sanitizer.inf library files.
+# We enable a certain build option and then compile all the libraries with these added build options.
 [BuildOptions]
-  # Add our skeleton pass
-  #*_*_*_CC_FLAGS = -Xclang -load -Xclang /mnt/part5/llvm-project/build/lib/LLVMSkeleton.so
-  #*_*_*_CC_FLAGS = -fsanitize=address -mllvm -asan-globals=0 -mllvm -asan-smm-tianocore=1
-  *_*_*_CC_FLAGS = -fsanitize=address -mllvm -asan-smm-tianocore=1
-
+  *_*_*_CC_FLAGS = $(SANITIZER_CC_FLAGS)
+  *_*_*_CC_FLAGS = $(SANITIZER_BLACKLIST)
+  #*_*_*_CC_FLAGS = -mllvm -msan-smm-tianocore-replace-external-functions=1
