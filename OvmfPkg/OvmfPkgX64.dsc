@@ -1030,7 +1030,6 @@
 !if $(SOURCE_DEBUG_ENABLE) == TRUE
       DebugAgentLib|SourceLevelDebugPkg/Library/DebugAgent/SmmDebugAgentLib.sanitizer.inf
 !endif
-      BaseCryptLib|CryptoPkg/Library/BaseCryptLib/SmmCryptLib.sanitizer.inf
       PciLib|OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.sanitizer.inf
 
       BaseMemoryLib|MdePkg/Library/BaseMemoryLibRepStr/BaseMemoryLibRepStr.sanitizer.inf

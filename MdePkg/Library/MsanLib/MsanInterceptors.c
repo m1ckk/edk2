@@ -458,7 +458,7 @@ EFI_STATUS __msan__EFI_FIRMWARE_VOLUME_BLOCK_PROTOCOL_GetPhysicalAddress(
 EFI_STATUS __msan__EFI_FAULT_TOLERANT_WRITE_PROTOCOL_GetMaxBlockSize(
   IN EFI_FAULT_TOLERANT_WRITE_PROTOCOL  *This,
   OUT UINTN                             *BlockSize,
-  IN EFI_FAULT_TOLERANT_WRITE_PROTOCOL  *Ftw 
+  IN EFI_FAULT_TOLERANT_WRITE_PROTOCOL  *Ftw
 ) {
   EFI_STATUS Status;
   Status = Ftw->GetMaxBlockSize(This, BlockSize);
@@ -477,7 +477,7 @@ EFI_STATUS __msan__EFI_FAULT_TOLERANT_WRITE_PROTOCOL_Write(
   IN VOID                               *PrivateData,
   IN EFI_HANDLE                         FvBlockHandle,
   IN VOID                               *Buffer,
-  IN EFI_FAULT_TOLERANT_WRITE_PROTOCOL  *Ftw 
+  IN EFI_FAULT_TOLERANT_WRITE_PROTOCOL  *Ftw
 ) {
   // Nothing to do, see MdeModulePkg/Universal/FaultTolerantWriteDxe/FaultTolerantWriteSmmDxe.c
   return Ftw->Write(This, Lba, Offset, Length, PrivateData, FvBlockHandle, Buffer);
