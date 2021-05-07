@@ -5,23 +5,19 @@
 
 void SetShadow(const void *ptr, uptr size, u8 value) {
   uptr shadow_beg = MEM_TO_SHADOW((uptr)ptr);
-  uptr shadow_end = shadow_beg + size;
-  DEBUG ((DEBUG_INFO, "ptr = %p\n", ptr));
-  DEBUG ((DEBUG_INFO, "size = %d\n", size));
-  DEBUG ((DEBUG_INFO, "shadow_beg = %p\n", shadow_beg));
-  DEBUG ((DEBUG_INFO, "shadow_end = %p\n", shadow_end));
 
-  ASSERT (shadow_beg >= SHADOW_BEGIN);
-  ASSERT (shadow_end < SHADOW_END);
-  ASSERT ((uptr)ptr < SHADOW_BEGIN);
-  ASSERT ((uptr)ptr >= SHADOW_BEGIN - 0x800000UL);
-  memset((void *)shadow_beg, value, shadow_end - shadow_beg);
+  if (!((uptr)ptr >= SMM_BEGIN && (((uptr)ptr + size) < SMM_END))) {
+    DEBUG ((DEBUG_INFO, "SetShadow() out of range.\n"));
+    DEBUG ((DEBUG_INFO, "ptr =          %p\n", ptr));
+    DEBUG ((DEBUG_INFO, "size =         %d\n", size));
+    return;
+  }
+  memset((void *)shadow_beg, value, size);
 }
 
 void __msan_unpoison_param(uptr n) {
   memset(__msan_param_tls, 0, n * sizeof(*__msan_param_tls));
 }
-
 
 void __msan_unpoison(const void *a, uptr size) {
   SetShadow(a, size, 0);
@@ -32,19 +28,13 @@ void __msan_poison(const void *a, uptr size) {
 }
 
 // Poison section SectionName which starts at BaseAddress until BaseAddress + Size.
-void PoisonSection(CHAR8 *DriverName, CHAR8 *SectionName, uptr BaseAddress, uptr Size) {
-  DEBUG ((DEBUG_INFO, "PoisonSection()@%p\n", PoisonSection));
+void __msan_poison_section(CHAR8 *DriverName, CHAR8 *SectionName, uptr BaseAddress, uptr Size) {
+  DEBUG ((DEBUG_INFO, "__msan_poison_section()@%p\n", __msan_poison_section));
   DEBUG ((DEBUG_INFO, "  DriverName = %a\n", DriverName));
   DEBUG ((DEBUG_INFO, "  SectionName = %a\n", SectionName));
   DEBUG ((DEBUG_INFO, "  BaseAddress = %p\n", BaseAddress));
   DEBUG ((DEBUG_INFO, "  Size = 0x%x\n", Size));
   DEBUG ((DEBUG_INFO, "  AsciiStrSize(DriverName) = %d\n", AsciiStrSize(DriverName)));
-  DEBUG ((DEBUG_INFO, "__msan_param_tls@%p\n", __msan_param_tls));
-  DEBUG ((DEBUG_INFO, "__msan_retval_tls@%p\n", __msan_retval_tls));
-  DEBUG ((DEBUG_INFO, "__msan_va_arg_tls@%p\n", __msan_va_arg_tls));
-  DEBUG ((DEBUG_INFO, "&(__msan_param_tls[0])@%p\n", &(__msan_param_tls[0])));
-  DEBUG ((DEBUG_INFO, "&(__msan_retval_tls[0])@%p)\n", &(__msan_retval_tls[0])));
-  DEBUG ((DEBUG_INFO, "&(__msan_va_arg_tls[0])@%p\n", &(__msan_va_arg_tls[0])));
 
   // .text is initialized
   if (AsciiStrCmp((CHAR8 *)SectionName, ".text") == 0) {
@@ -69,11 +59,40 @@ void PoisonSection(CHAR8 *DriverName, CHAR8 *SectionName, uptr BaseAddress, uptr
     DEBUG ((DEBUG_INFO, "  Not poisoning section %a.\n", SectionName));
     ASSERT(0);
   }
-  //__msan_unpoison((void *)(SHADOW_OFFSET - SHADOW_SIZE), SHADOW_SIZE - 1);
 }
 
 
 
-void TransferShadow(uptr dst, uptr src, uptr size) {
-  
+void __msan_transfer_shadow(void *dst, void *src, uptr size) {
+  uptr shadow_beg_src = MEM_TO_SHADOW((uptr)src);
+  uptr shadow_beg_dst = MEM_TO_SHADOW((uptr)dst);
+
+  if (!(((uptr)src >= SMM_BEGIN) && (((uptr)src + size) < SMM_END))) {
+    // src is out of SMRAM.
+    if (!(((uptr)dst >= SMM_BEGIN) && (((uptr)dst + size) < SMM_END))) {
+      // dst is out of SMRAM.
+      DEBUG ((DEBUG_INFO, "__msan_transfer_shadow(): src out dst out\n"));
+      return;
+    } else {
+      // dst is in SMRAM.
+      // Use clean shadow, since we assume everything outside of SMRAM to be
+      // initialized, and the source is outside of SMRAM.
+      DEBUG ((DEBUG_INFO, "__msan_transfer_shadow(): src out dst in\n"));
+      __msan_unpoison(dst, size);
+    }
+  } else {
+    // src is in SMRAM.
+    if (!(((uptr)dst >= SMM_BEGIN) && (((uptr)dst + size) < SMM_END))) {
+      // dst is outside of SMRAM.
+      // Do nothing, as we are copying memory to outside of SMRAM.
+      DEBUG ((DEBUG_INFO, "__msan_transfer_shadow(): src in dst out\n"));
+      return;
+    } else {
+      // dst is in SMRAM.
+      // This is the case in which both src and dst are in SMRAM.
+      // Transfer the shadow values to the destination.
+      DEBUG ((DEBUG_INFO, "__msan_transfer_shadow(): src in dst in\n"));
+      memcpy((void *)shadow_beg_dst, (void *)shadow_beg_src, size);
+    }
+  }
 }

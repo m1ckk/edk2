@@ -8,3 +8,7 @@ fun:UefiBootServicesTableLibConstructor
 src:*/Library/PlatformDebugLibIoPort/*
 src:*/Library/BasePrintLib/*
 src:*/Library/BaseDebugPrintErrorLevelLib/*
+# We do explicit poisoning for these functions.
+fun:CopyMem
+fun:SetMem*
+fun:ZeroMem

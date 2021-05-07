@@ -1,0 +1,24 @@
+diff --git a/MdePkg/Library/BaseMemoryLibRepStr/BaseMemoryLibRepStr.sanitizer.inf b/MdePkg/Library/BaseMemoryLibRepStr/BaseMemoryLibRepStr.sanitizer.inf
+index 9d4f8769c0..a95d2889f5 100644
+--- a/MdePkg/Library/BaseMemoryLibRepStr/BaseMemoryLibRepStr.sanitizer.inf
++++ b/MdePkg/Library/BaseMemoryLibRepStr/BaseMemoryLibRepStr.sanitizer.inf
+@@ -31,13 +31,13 @@
+   ScanMem32Wrapper.c
+   ScanMem16Wrapper.c
+   ScanMem8Wrapper.c
+-  ZeroMemWrapper.c
++  ZeroMemWrapper.sanitizer.c
+   CompareMemWrapper.c
+-  SetMem64Wrapper.c
+-  SetMem32Wrapper.c
+-  SetMem16Wrapper.c
+-  SetMemWrapper.c
+-  CopyMemWrapper.c
++  SetMem64Wrapper.sanitizer.c
++  SetMem32Wrapper.sanitizer.c
++  SetMem16Wrapper.sanitizer.c
++  SetMemWrapper.sanitizer.c
++  CopyMemWrapper.sanitizer.c
+   IsZeroBufferWrapper.c
+   MemLibGuid.c
+ 

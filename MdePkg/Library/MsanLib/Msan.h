@@ -15,13 +15,12 @@ typedef UINTN uhwptr;
 
 #define ALWAYS_INLINE __attribute__((always_inline))
 
-
-#define SHADOW_OFFSET 0x7F800000UL
-#define SHADOW_SIZE 0x800000UL
-#define SHADOW_BEGIN SHADOW_OFFSET
-#define SHADOW_END SHADOW_BEGIN + SHADOW_SIZE
+#define SMM_BEGIN 0x7F000000UL
+#define SMM_END 0x7F800000UL
+#define SHADOW_BEGIN 0x7F800000UL
+#define SHADOW_END 0x80000000UL
 #define AND_MASK 0xffffffffff000000UL
-#define MEM_TO_SHADOW(mem) ((mem & ~(AND_MASK)) + (SHADOW_OFFSET))
+#define MEM_TO_SHADOW(mem) ((mem & ~(AND_MASK)) + (SHADOW_BEGIN))
 
 #define GET_CURRENT_FRAME() (uptr) __builtin_frame_address(0)
 

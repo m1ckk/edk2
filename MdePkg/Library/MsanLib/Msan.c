@@ -89,6 +89,14 @@ void __msan_init(void) {
   DEBUG ((DEBUG_INFO, "__msan_init()@%p\n", __msan_init));
 }
 
+size_t UMRCounter = 0;
+
+void __msan_warning_tianocore(char *func, uptr call_id) {
+    UMRCounter++;
+    DEBUG ((DEBUG_INFO, "__msan_warning_tianocore(): UMRCounter = %u\n", UMRCounter));
+}
+
+
 void __msan_warning_noreturn(void) {
   asm volatile("hlt");
   DEBUG ((DEBUG_INFO, "__msan_warning_noreturn()\n"));
@@ -141,16 +149,10 @@ void __msan_noreturn_tianocore(char *f, uptr call_id) {
 */
   GET_CALLER_PC_BP_SP;
   (void)sp;
-  DEBUG ((DEBUG_INFO, "\n\n__msan_noreturn_tianocore(): use of unitialized memory.\n\n"));
-  DEBUG ((DEBUG_INFO, "__builtin_return_address(0) = %p\n", __builtin_return_address(0)));
-  DEBUG ((DEBUG_INFO, "__builtin_return_address(1) = %p\n", __builtin_return_address(1)));
-  DEBUG ((DEBUG_INFO, "__builtin_return_address(2) = %p\n", __builtin_return_address(2)));
-  DEBUG ((DEBUG_INFO, "call_id = 0x%x\n", call_id));
 
   PrintWarning(pc, bp);
   if (print_stats)
     ReportStats();
-  DEBUG((DEBUG_INFO, "Exiting\n"));
 
   DEBUG ((DEBUG_INFO, "__msan_warning_noreturn() for function: "));
   int i = 0;
@@ -159,8 +161,11 @@ void __msan_noreturn_tianocore(char *f, uptr call_id) {
     i++;
   }
   DEBUG((DEBUG_INFO, "\n"));
+  UMRCounter++;
+  DEBUG ((DEBUG_INFO, "UMRCounter = %ul\n", UMRCounter));
 
-  asm volatile ("hlt");
+
+  //asm volatile ("hlt");
 }
 
 void __msan_print_shadow(void *ptr, int size) {

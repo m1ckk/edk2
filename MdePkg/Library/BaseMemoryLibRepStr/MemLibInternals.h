@@ -22,6 +22,9 @@
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 
+#include <Msan.h>
+
+
 /**
   Copy Length bytes from Source to Destination.
 

@@ -334,7 +334,7 @@ void SmmPoisonSections(PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext, UINTN BaseAd
     // Only apply poisoning for VariableSmm.efi for now.
     if (AsciiStrCmp(&(DriverName[DriverNameLength - AsciiStrSize("VariableSmm.pdb")]),
             "VariableSmm.pdb") == 0) {
-      PoisonSection(ImageContext->PdbPointer, (CHAR8 *)SectionHeader.Name, 
+      __msan_poison_section(ImageContext->PdbPointer, (CHAR8 *)SectionHeader.Name, 
         BaseAddress + SectionHeader.VirtualAddress, SectionHeader.Misc.VirtualSize);
     }
 
