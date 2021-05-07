@@ -40,7 +40,7 @@ ASAN_CC_FLAGS='-fsanitize=address -mllvm -asan-smm-tianocore=1'
 MSAN_CC_FLAGS='-fsanitize=memory -mllvm -msan-smm-tianocore=1 -mllvm -msan-keep-going=1 -mllvm -msan-smm-tianocore-replace-external-functions=1'
 SFI_CC_FLAGS='-fsanitize=cfi #-fno-sanitize=cfi-icall#cfi-cast-strict,cfi-derived-cast#,cfi-mfcall,cfi-unrelated-cast,cfi-nvcall,cfi-vcall'
 
-MSAN_BLACKLIST=-fsanitize-blacklist=/mnt/part5/edk2/MdePkg/Library/MsanLib/MsanBlacklist.txt
+MSAN_BLACKLIST=-fsanitize-blacklist=$(realpath MdePkg/Library/MsanLib/MsanBlacklist.txt)
 
 echo SANITIZER_CC_FLAGS=${MSAN_CC_FLAGS}
 echo SANITIZER_BLACKLIST=${MSAN_BLACKLIST}
