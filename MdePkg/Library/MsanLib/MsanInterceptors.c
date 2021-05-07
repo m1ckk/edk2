@@ -247,10 +247,10 @@ EFI_STATUS __msan_DXE_SERVICES_GetMemorySpaceMap(
             MemorySpaceMap
             );
   if (Status == EFI_SUCCESS) {
-    __msan_unpoison_param(2);
-    __msan_poison(MemorySpaceMap, sizeof *MemorySpaceMap);
-    __msan_poison(*MemorySpaceMap, sizeof (EFI_GCD_MEMORY_SPACE_DESCRIPTOR) * (*NumberOfDescriptors));
-    __msan_poison(NumberOfDescriptors, sizeof *NumberOfDescriptors);
+    __msan_unpoison_param(3);
+    __msan_unpoison(MemorySpaceMap, sizeof *MemorySpaceMap);
+    __msan_unpoison(*MemorySpaceMap, sizeof (EFI_GCD_MEMORY_SPACE_DESCRIPTOR) * (*NumberOfDescriptors));
+    __msan_unpoison(NumberOfDescriptors, sizeof *NumberOfDescriptors);
   }
   return Status;
 }
