@@ -3,4 +3,3 @@
 [BuildOptions]
   *_*_*_CC_FLAGS = $(SANITIZER_CC_FLAGS)
   *_*_*_CC_FLAGS = $(SANITIZER_BLACKLIST)
-  #*_*_*_CC_FLAGS = -mllvm -msan-smm-tianocore-replace-external-functions=1

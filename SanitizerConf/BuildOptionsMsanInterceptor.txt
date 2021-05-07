@@ -1,1 +1,0 @@
-*_*_*_CC_FLAGS = -mllvm -msan-smm-tianocore-replace-external-functions=1
