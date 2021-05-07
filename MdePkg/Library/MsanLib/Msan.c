@@ -92,8 +92,14 @@ void __msan_init(void) {
 size_t UMRCounter = 0;
 
 void __msan_warning_tianocore(char *func, uptr call_id) {
-    UMRCounter++;
-    DEBUG ((DEBUG_INFO, "__msan_warning_tianocore(): UMRCounter = %u\n", UMRCounter));
+  UMRCounter++;
+  DEBUG ((DEBUG_INFO, "__msan_warning_tianocore(): UMRCounter = %u, call_id = %u\n", UMRCounter, call_id));
+  DEBUG ((DEBUG_INFO, "  in function: "));
+  while (*func != 0) {
+    DEBUG ((DEBUG_INFO, "%c", *func));
+    func++;
+  }
+  DEBUG ((DEBUG_INFO, "\n"));
 }
 
 
