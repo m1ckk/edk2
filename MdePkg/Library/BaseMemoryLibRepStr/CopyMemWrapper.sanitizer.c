@@ -54,8 +54,10 @@ CopyMem (
     return DestinationBuffer;
   }
 
+#ifdef SANITIZE_SMM_MSAN
   __msan_transfer_shadow(DestinationBuffer, (void *)SourceBuffer, Length);
   __msan_unpoison_param(3);
+#endif
 
   return InternalMemCopyMem (DestinationBuffer, SourceBuffer, Length);
 }

@@ -701,8 +701,10 @@ SmmLoadImage (
     UINTN Index;
     UINTN StartIndex;
     CHAR8 EfiFileName[256];
+#ifdef SANITIZE_SMM_MSAN
     // Poison the relevant memory regions of the SMM driver just before executing it.
     SmmPoisonSections(&ImageContext, ImageContext.ImageAddress);
+#endif
     DEBUG ((DEBUG_INFO | DEBUG_LOAD,
            "Loading SMM driver at 0x%11p with image size 0x%lx EntryPoint=0x%11p ",
            (VOID *)(UINTN) ImageContext.ImageAddress,

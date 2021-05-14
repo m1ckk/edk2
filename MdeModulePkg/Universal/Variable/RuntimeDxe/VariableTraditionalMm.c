@@ -75,13 +75,6 @@ VariableNotifySmmWriteReady (
   ASSERT_EFI_ERROR (Status);
 }
 
-// Weak definition that can be overridden when we actually use ASan.
-void __attribute__((weak)) __asan_init(void) {}
-VOID
-__sanitizer_init(void) {
-  __asan_init();
-}
-
 /**
   Variable service MM driver entry point
 
@@ -99,7 +92,6 @@ VariableServiceInitialize (
   )
 {
   DEBUG((DEBUG_INFO, "VariableServiceInitialize()\n"));
-  __sanitizer_init();
   return MmVariableServiceInitialize ();
 }
 

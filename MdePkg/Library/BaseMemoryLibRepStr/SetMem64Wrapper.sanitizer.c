@@ -54,8 +54,10 @@ SetMem64 (
   ASSERT ((((UINTN)Buffer) & (sizeof (Value) - 1)) == 0);
   ASSERT ((Length & (sizeof (Value) - 1)) == 0);
 
+#ifdef SANITIZE_SMM_MSAN
   __msan_unpoison(Buffer, Length);
   __msan_unpoison_param(3);
+#endif
 
   return InternalMemSetMem64 (Buffer, Length / sizeof (Value), Value);
 }

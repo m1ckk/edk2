@@ -22,7 +22,9 @@
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 
-#include <Msan.h>
+#ifdef SANITIZE_SMM_MSAN
+  #include <Msan.h>
+#endif
 
 
 /**

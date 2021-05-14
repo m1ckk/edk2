@@ -10,8 +10,10 @@ typedef UINT64 u64;
 typedef UINT8 u8;
 typedef UINTN uptr;
 
-int __asan_option_detect_stack_use_after_return = 1;
+int __asan_option_detect_stack_use_after_return = 0;
 void *__asan_shadow_memory_dynamic_address;
+int asan_inited = 0;
+int asan_in_runtime = 0;
 
 // As defined for SMM, this is according to AddressSanitizer.cpp
 static const u64 kDefaultShadowScale = 3;
@@ -65,41 +67,88 @@ void ReportGenericError(uptr pc, uptr bp, uptr sp, uptr addr, bool is_write,
     //int bug_idx = 0;
 
     DEBUG ((DEBUG_INFO, "[ASAN] ERROR: pc=%p, sp=%p, addr=%p, shadow value=%x, is_write=%x\n", (void *)pc, (void *)sp, (void *)addr, shadow_val, is_write));
-    asm volatile("hlt");
 }
 
 
 #define ASAN_DECLARATION(type, is_write, size)                              \
 void __asan_report_exp_ ## type ## size(uptr addr) {                        \
-  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
+  if (!asan_inited || asan_in_runtime) {return;}                            \
+  asan_in_runtime = 1;                                                      \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a\n", __func__));                            \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
+  asan_in_runtime = 0;                                                      \
+  asm volatile("hlt");                                                      \
 }                                                                           \
 void __asan_report_exp_ ## type##_## size(uptr addr) {                      \
-  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
+  if (!asan_inited || asan_in_runtime) {return;}                            \
+  asan_in_runtime = 1;                                                      \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a\n", __func__));                            \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
+  asan_in_runtime = 0;                                                      \
+  asm volatile("hlt");                                                      \
 }                                                                           \
 void __asan_exp_ ## type ## size(uptr addr) {                               \
-  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
+  if (!asan_inited || asan_in_runtime) {return;}                            \
+  asan_in_runtime = 1;                                                      \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a\n", __func__));                            \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
+  asan_in_runtime = 0;                                                      \
+  asm volatile("hlt");                                                      \
 }                                                                           \
 void __asan_report_ ## type ## size(uptr addr) {                            \
-  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
+  if (!asan_inited || asan_in_runtime) {return;}                            \
+  asan_in_runtime = 1;                                                      \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a\n", __func__));                            \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
+  asan_in_runtime = 0;                                                      \
+  asm volatile("hlt");                                                      \
 }                                                                           \
 void __asan_report_ ## type##_## size(uptr addr) {                          \
-  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
+  if (!asan_inited || asan_in_runtime) {return;}                            \
+  asan_in_runtime = 1;                                                      \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a\n", __func__));                            \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
+  asan_in_runtime = 0;                                                      \
+  asm volatile("hlt");                                                      \
 }                                                                           \
 void __asan_ ## type ## size(uptr addr) {                                   \
-  DEBUG ((DEBUG_INFO, "[ASAN] %a", __func__));                              \
+  if (!asan_inited || asan_in_runtime) {return;}                            \
+  asan_in_runtime = 1;                                                      \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a\n", __func__));                            \
   GET_CALLER_PC_BP_SP;                                                      \
   ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
-}
+  asan_in_runtime = 0;                                                      \
+  asm volatile("hlt");                                                      \
+}                                                                           \
+void __asan_report_ ## type##_## size ##_noabort(uptr addr) {               \
+  if (!asan_inited || asan_in_runtime) {return;}                            \
+  asan_in_runtime = 1;                                                      \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a\n", __func__));                            \
+  GET_CALLER_PC_BP_SP;                                                      \
+  ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
+  asan_in_runtime = 0;                                                      \
+}                                                                           \
+void __asan_report ## type ## size ##_noabort(uptr addr) {                  \
+  if (!asan_inited || asan_in_runtime) {return;}                            \
+  asan_in_runtime = 1;                                                      \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a\n", __func__));                            \
+  GET_CALLER_PC_BP_SP;                                                      \
+  ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
+  asan_in_runtime = 0;                                                      \
+}                                                                           \
+void __asan_report_ ## type ## size##_noabort(uptr addr) {                  \
+  if (!asan_inited || asan_in_runtime) {return;}                            \
+  asan_in_runtime = 1;                                                      \
+  DEBUG ((DEBUG_INFO, "[ASAN] %a\n", __func__));                            \
+  GET_CALLER_PC_BP_SP;                                                      \
+  ReportGenericError(pc, bp, sp, addr, is_write, -1, 0, true);              \
+  asan_in_runtime = 0;                                                      \
+}                                                                           \
 
 ASAN_DECLARATION(load, false, 1);
 ASAN_DECLARATION(load, false, 2);
@@ -121,8 +170,10 @@ void __asan_version_mismatch_check_v8(void) {
 }
 
 void __asan_handle_no_return(void) {
+  if (!asan_inited || asan_in_runtime) {return;}
+  asan_in_runtime = 1;
   DEBUG ((DEBUG_INFO, "__asan_handle_no_return()\n"));
-  asm volatile("hlt");
+  asan_in_runtime = 0;
 }
 
 static uptr RoundUpTo(uptr size, uptr boundary) {
@@ -346,6 +397,7 @@ static void init_fake_stack(void) {
 }
 
 static FakeFrame *allocFakeFrame(UINTN class_id) {
+    asan_in_runtime = 1;
     FakeFrame *ff;
     int nr_fake_frames = __asan_fs.NrFakeFrames[class_id];
     // We start with the saved index, which is the index after the most 
@@ -374,6 +426,7 @@ static FakeFrame *allocFakeFrame(UINTN class_id) {
             // allocated frame.
             __asan_fs.IndexFakeFrame[class_id] = (index + 1) % nr_fake_frames;
             FastPoisonShadow((UINTN)ff, 64 << class_id, 0);
+            asan_in_runtime = 0;
             return ff;
         }
         i++;
@@ -381,6 +434,7 @@ static FakeFrame *allocFakeFrame(UINTN class_id) {
     }
     // No FakeFrames left for class_id
     DEBUG ((DEBUG_INFO, "allocFakeFrame(): ERROR\n"));
+    asan_in_runtime = 0;
     asm volatile("hlt");
     return NULL;
 }
@@ -426,9 +480,24 @@ DEFINE_STACK_MALLOC_FREE_WITH_CLASS_ID(7);
 
 
 void __asan_init(void) {
-  DEBUG ((DEBUG_INFO, "[ASAN] __asan_init()\n"));
+  asan_in_runtime = 1;
+  DEBUG ((DEBUG_INFO, "[ASAN] __asan_init(): started\n"));
   __asan_shadow_memory_dynamic_address = (void *)(uptr)SHADOW_OFFSET;
   call_on_globals();
   init_fake_stack();
+  asan_inited = 1;
+  __asan_option_detect_stack_use_after_return = 1;
+  DEBUG ((DEBUG_INFO, "[ASAN] __asan_init(): finished\n"));
+  asan_in_runtime = 0;
+}
+
+EFI_STATUS
+EFIAPI
+AsanLibConstructor (
+IN EFI_HANDLE ImageHandle,
+IN EFI_SYSTEM_TABLE *SystemTable
+) {
+    __asan_init();
+    return EFI_SUCCESS;
 }
 

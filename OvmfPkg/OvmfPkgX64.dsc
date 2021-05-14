@@ -36,6 +36,13 @@
   DEFINE TPM_CONFIG_ENABLE       = FALSE
 
   #
+  # SMM sanitizer variables. These can be changed on the command line.
+  #
+  DEFINE SANITIZE_SMM            = FALSE
+  DEFINE SANITIZE_SMM_ASAN       = FALSE
+  DEFINE SANITIZE_SMM_MSAN       = FALSE
+
+  #
   # Network definition
   #
   DEFINE NETWORK_TLS_ENABLE             = FALSE
@@ -72,9 +79,6 @@
 !endif
 !endif
 
-  # For sanitizing SMM in TianoCore.
-  DEFINE SANITIZE_SMM           = FALSE
-
 [BuildOptions]
   GCC:RELEASE_*_*_CC_FLAGS             = -DMDEPKG_NDEBUG
   INTEL:RELEASE_*_*_CC_FLAGS           = /D MDEPKG_NDEBUG
@@ -110,11 +114,6 @@
   XCODE:*_*_*_DLINK_FLAGS = -seg1addr 0x1000 -segalign 0x1000
   XCODE:*_*_*_MTOC_FLAGS = -align 0x1000
   CLANGPDB:*_*_*_DLINK_FLAGS = /ALIGN:4096
-
-!if $(SANITIZE_SMM) == TRUE
-[BuildOptions.common.EDKII.DXE_SMM_DRIVER]
-  CLANGPDB:*_*_*_CC_FLAGS = -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer
-!endif
 
 ################################################################################
 #
@@ -467,7 +466,14 @@
   DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
 !endif
   PciLib|OvmfPkg/Library/DxePciLibI440FxQ35/DxePciLibI440FxQ35.inf
+!if $(SANITIZE_SMM_MSAN) == TRUE
   NULL|MdePkg/Library/MsanLib/MsanLib.inf
+!endif
+
+!if $(SANITIZE_SMM_MSAN) == TRUE
+[BuildOptions.common.EDKII.SMM_CORE]
+  *_*_*_CC_FLAGS = -D SANITIZE_SMM_MSAN
+!endif  
 
 ################################################################################
 #
@@ -1056,11 +1062,15 @@
       DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.sanitizer.inf
 !endif
       PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.sanitizer.inf
-
-
-      NULL|MdePkg/Library/MsanLib/MsanLib.inf
-
 !endif # !if $(SANITIZE_SMM) == FALSE
+
+!if $(SANITIZE_SMM_MSAN) == TRUE
+      NULL|MdePkg/Library/MsanLib/MsanLib.inf
+!endif
+!if $(SANITIZE_SMM_ASAN) == TRUE
+      NULL|MdePkg/Library/AsanLib/AsanLib.inf
+!endif
+
 
   }
 

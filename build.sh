@@ -28,22 +28,45 @@ restore_sanitizer_inf_files () {
     printf "\n\n"
 }
 
+
+
 # Check whether we should restore the *.sanitizer.inf files.
 if [[ $1 = "restore" ]]
 then
     shift
     echo "Restoring *.sanitizer.inf files"
     restore_sanitizer_inf_files
+    echo "Updated configurations."
+    echo "Exiting..."
+    exit
+elif [[ $1 = "asan" ]]
+then
+    DEFINES="-D SANITIZE_SMM_ASAN"
+    ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -fno-lto ${DEFINES}"
+    #ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -fno-lto ${DEFINES}"
+    SANITIZER_CC_FLAGS=${ASAN_CC_FLAGS}
+    SANITIZER_BLACKLIST="-fsanitize-blacklist=$(realpath MdePkg/Library/AsanLib/AsanBlacklist.txt)"
+    SANITIZER_BUILD_VARIABLES=${DEFINES}
+    shift
+elif [[ $1 = "msan" ]]
+then
+    DEFINES="-D SANITIZE_SMM_MSAN"
+    MSAN_CC_FLAGS="-fsanitize=memory -mllvm -msan-smm-tianocore=1 -mllvm -msan-keep-going=1 -mllvm -msan-smm-tianocore-replace-external-functions=1 ${DEFINES}"
+    SANITIZER_CC_FLAGS=${MSAN_CC_FLAGS}
+    SANITIZER_BLACKLIST="-fsanitize-blacklist=$(realpath MdePkg/Library/MsanLib/MsanBlacklist.txt)"
+    SANITIZER_BUILD_VARIABLES=${DEFINES}
+    shift
+else
+    echo "Please provide a command to the build.sh script."
+    echo "Exiting..."
+    exit
 fi
 
-ASAN_CC_FLAGS='-fsanitize=address -mllvm -asan-smm-tianocore=1'
-MSAN_CC_FLAGS='-fsanitize=memory -mllvm -msan-smm-tianocore=1 -mllvm -msan-keep-going=1 -mllvm -msan-smm-tianocore-replace-external-functions=1'
 SFI_CC_FLAGS='-fsanitize=cfi #-fno-sanitize=cfi-icall#cfi-cast-strict,cfi-derived-cast#,cfi-mfcall,cfi-unrelated-cast,cfi-nvcall,cfi-vcall'
 
-MSAN_BLACKLIST=-fsanitize-blacklist=$(realpath MdePkg/Library/MsanLib/MsanBlacklist.txt)
+echo "SANITIZER_CC_FLAGS = ${SANITIZER_CC_FLAGS}"
+echo "SANITIZER_BLACKLIST = ${SANITIZER_BLACKLIST}"
+echo "SANITIZER_BUILD_VARIABLES = ${SANITIZER_BUILD_VARIABLES}"
+printf "\n\n\n"
 
-echo SANITIZER_CC_FLAGS=${MSAN_CC_FLAGS}
-echo SANITIZER_BLACKLIST=${MSAN_BLACKLIST}
-printf "\n\n"
-
-source edksetup.sh && SANITIZER_CC_FLAGS=${MSAN_CC_FLAGS} SANITIZER_BLACKLIST=${MSAN_BLACKLIST} build -a X64 -p OvmfPkg/OvmfPkgX64.dsc -t CLANGPDB -D SMM_REQUIRE -D SANITIZE_SMM -D SANITIZE_SMM_MSAN
+source edksetup.sh && SANITIZER_CC_FLAGS=${SANITIZER_CC_FLAGS} SANITIZER_BLACKLIST=${SANITIZER_BLACKLIST} build -a X64 -p OvmfPkg/OvmfPkgX64.dsc -t CLANGPDB -D SMM_REQUIRE -D SANITIZE_SMM ${SANITIZER_BUILD_VARIABLES}

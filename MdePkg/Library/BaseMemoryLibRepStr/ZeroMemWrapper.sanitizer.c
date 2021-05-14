@@ -47,8 +47,10 @@ ZeroMem (
   ASSERT (Buffer != NULL);
   ASSERT (Length <= (MAX_ADDRESS - (UINTN)Buffer + 1));
 
+#ifdef SANITIZE_SMM_MSAN
   __msan_unpoison(Buffer, Length);
   __msan_unpoison_param(2);
+#endif
 
   return InternalMemZeroMem (Buffer, Length);
 }
