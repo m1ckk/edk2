@@ -10,6 +10,17 @@
 #include "Msan.h"
 #include "MsanPoisoning.h"
 
+typedef struct {
+  UINT32            Signature;
+  BOOLEAN           Available;
+  EFI_MEMORY_TYPE   Type;
+  UINTN             Size;
+} POOL_HEADER;
+
+typedef struct {
+  POOL_HEADER  Header;
+  LIST_ENTRY   Link;
+} FREE_POOL_HEADER;
 
 /*
 Things which I have looked for when (un)poisoning are:
@@ -192,7 +203,16 @@ EFI_STATUS __msan__EFI_SMM_SYSTEM_TABLE2_SmmFreePool(
     IN VOID                   *Buffer,
     IN EFI_SMM_SYSTEM_TABLE2  *gSmst
 ) {
-  return gSmst->SmmFreePool(Buffer);
+  EFI_STATUS Status;
+  FREE_POOL_HEADER  *FreePoolHdr;
+  FreePoolHdr = (FREE_POOL_HEADER*)((POOL_HEADER*)Buffer - 1);
+  UINTN Size = FreePoolHdr->Header.Size;
+  DEBUG ((DEBUG_INFO, "__msan__EFI_SMM_SYSTEM_TABLE2_SmmFreePool(): Size = %u\n", Size));
+  Status = gSmst->SmmFreePool(Buffer);
+  if (Status == EFI_SUCCESS) {
+    __msan_poison(Buffer, Size);
+  }
+  return Status;
 }
 
 /////////////////////////////////////
