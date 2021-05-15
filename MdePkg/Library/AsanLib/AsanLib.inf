@@ -29,6 +29,10 @@
 
 [Sources]
   Asan.c
+  AsanInterceptors.c
+  AsanAlloc.c
+  AsanPoisoning.c
+  AsanFakeStack.c
 
 [Packages]
   MdePkg/MdePkg.dec

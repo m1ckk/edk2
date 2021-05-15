@@ -42,7 +42,7 @@ then
 elif [[ $1 = "asan" ]]
 then
     DEFINES="-D SANITIZE_SMM_ASAN"
-    ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -fno-lto ${DEFINES}"
+    ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -mllvm -asan-smm-tianocore-replace-external-functions=1 -fno-lto ${DEFINES}"
     #ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -fno-lto ${DEFINES}"
     SANITIZER_CC_FLAGS=${ASAN_CC_FLAGS}
     SANITIZER_BLACKLIST="-fsanitize-blacklist=$(realpath MdePkg/Library/AsanLib/AsanBlacklist.txt)"
