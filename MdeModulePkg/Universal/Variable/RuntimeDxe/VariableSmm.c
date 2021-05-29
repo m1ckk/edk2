@@ -453,7 +453,21 @@ static void TestASan(int i, int j) {
         FunctionThatEscapesLocalObject();
         ptr[j] = 100;
         break;
-    case 3: // Use after scope
+    case 3: // Heap buffer overflow
+        DEBUG ((DEBUG_INFO, "TestASan(): Heap buffer overflow\n"));
+        char *c = (char *)AllocatePool(8);
+        c[9] = 'c';
+        DEBUG ((DEBUG_INFO, "c[%d] = %c\n", 8, c[8]));
+        FreePool(c);
+        break;
+    case 4: // Use after return
+        DEBUG ((DEBUG_INFO, "TestASan(): Use after free error\n"));
+        char *d = (char *)AllocatePool(8);
+        FreePool(d);
+        d[3] = 'c';
+        DEBUG ((DEBUG_INFO, "d[%d] = %c\n", 3, d[3]));
+        break;
+    case 5: // Use after scope
         DEBUG ((DEBUG_INFO, "TestASan(): Use after scope\n"));
         {
             int x = 0;
@@ -461,10 +475,28 @@ static void TestASan(int i, int j) {
         }
         *p = 5;
         break;
+
     default:
         DEBUG ((DEBUG_INFO, "TestASan(): ERROR default switch case.\n"));
     }
 }
+
+volatile char MSanGlobal[7];
+
+__attribute__((__used__, noinline))
+static void TestMSan(int argc) {
+    int a[10];
+    a[5] = 0;
+    DEBUG ((DEBUG_INFO, "Causing MSan global variable error...\n"));
+    if (MSanGlobal[argc])
+        DEBUG ((DEBUG_INFO, "xx\n"));
+    DEBUG ((DEBUG_INFO, "Causing MSan stack variable variable error...\n"));
+    if (a[argc])
+        DEBUG ((DEBUG_INFO, "xx\n"));
+    
+}
+
+
 
 
 /**
@@ -522,10 +554,22 @@ SmmVariableHandler (
   UINTN                                                   CommBufferPayloadSize;
   UINTN                                                   TempCommBufferSize;
 
+#ifdef SANITIZE_SMM_ASAN
   // Testing ASan stack buffer overflow.
   DEBUG((DEBUG_INFO, "Testing ASan...\n"));
   // Modulo is used to force ASan think we access the buffer with a non-constant value.
+  TestASan(0, (*CommBufferSize % 20) + 6);
+  TestASan(1, (*CommBufferSize % 20) + 6);
   TestASan(2, (*CommBufferSize % 20) + 6);
+  TestASan(3, (*CommBufferSize % 20) + 6);
+  TestASan(4, (*CommBufferSize % 20) + 6);
+  TestASan(5, (*CommBufferSize % 20) + 6);
+#endif
+#ifdef SANITIZE_SMM_MSAN
+  DEBUG((DEBUG_INFO, "Testing MSan...\n"));
+  // Modulo is used to force ASan think we access the buffer with a non-constant value.
+  TestMSan((*CommBufferSize % 20) + 6);
+#endif
 
   //
   // If input is invalid, stop processing this SMI
