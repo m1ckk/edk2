@@ -31,7 +31,7 @@ restore_sanitizer_inf_files () {
 
 
 # Check whether we should restore the *.sanitizer.inf files.
-if [[ $1 = "restore" ]]
+if [[ $1 = "RESTORE" ]]
 then
     shift
     echo "Restoring *.sanitizer.inf files"
@@ -39,19 +39,34 @@ then
     echo "Updated configurations."
     echo "Exiting..."
     exit
-elif [[ $1 = "asan" ]]
+# Deleting Build directory
+elif [[ $1 = "CLEAN" ]]
 then
+    echo "Cleaning build directory."
+    shift
+    rm -rf Build
+# A build without instrumentation
+elif [[ $1 = "CLEAN_BUILD" ]]
+then
+    echo "Building clean edk2."
+    shift
+# A build with ASan instrumentation
+elif [[ $1 = "ASAN" ]]
+then
+    echo "Building asan edk2."
     DEFINES="-D SANITIZE_SMM_ASAN"
-    ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -mllvm -asan-smm-tianocore-replace-external-functions=1 -fno-lto ${DEFINES}"
+    ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -mllvm -asan-smm-tianocore-replace-external-functions=1 -fno-lto -g0 ${DEFINES}"
     #ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -fno-lto ${DEFINES}"
     SANITIZER_CC_FLAGS=${ASAN_CC_FLAGS}
     SANITIZER_BLACKLIST="-fsanitize-blacklist=$(realpath MdePkg/Library/AsanLib/AsanBlacklist.txt)"
     SANITIZER_BUILD_VARIABLES=${DEFINES}
     shift
-elif [[ $1 = "msan" ]]
+# A build with MSan instrumentation
+elif [[ $1 = "MSAN" ]]
 then
+    echo "Building msan edk2."
     DEFINES="-D SANITIZE_SMM_MSAN"
-    MSAN_CC_FLAGS="-fsanitize=memory -mllvm -msan-smm-tianocore=1 -mllvm -msan-keep-going=1 -mllvm -msan-smm-tianocore-replace-external-functions=1 ${DEFINES}"
+    MSAN_CC_FLAGS="-fsanitize=memory -mllvm -msan-smm-tianocore=1 -mllvm -msan-keep-going=1 -mllvm -msan-smm-tianocore-replace-external-functions=1 -g0 ${DEFINES}"
     SANITIZER_CC_FLAGS=${MSAN_CC_FLAGS}
     SANITIZER_BLACKLIST="-fsanitize-blacklist=$(realpath MdePkg/Library/MsanLib/MsanBlacklist.txt)"
     SANITIZER_BUILD_VARIABLES=${DEFINES}
