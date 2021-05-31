@@ -481,12 +481,14 @@ static void TestASan(int i, int j) {
     }
 }
 
-volatile char MSanGlobal[7];
+volatile char MSanGlobal[10];
 
 __attribute__((__used__, noinline))
 static void TestMSan(int argc) {
     int a[10];
     a[5] = 0;
+    MSanGlobal[5] = 0;
+    DEBUG ((DEBUG_INFO, "argc = %d\n", argc));
     DEBUG ((DEBUG_INFO, "Causing MSan global variable error...\n"));
     if (MSanGlobal[argc])
         DEBUG ((DEBUG_INFO, "xx\n"));
@@ -568,7 +570,7 @@ SmmVariableHandler (
 #ifdef SANITIZE_SMM_MSAN
   DEBUG((DEBUG_INFO, "Testing MSan...\n"));
   // Modulo is used to force ASan think we access the buffer with a non-constant value.
-  TestMSan((*CommBufferSize % 20) + 6);
+  TestMSan((*CommBufferSize % 10));
 #endif
 
   //
