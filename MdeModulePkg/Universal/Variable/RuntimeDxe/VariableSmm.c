@@ -556,6 +556,7 @@ SmmVariableHandler (
   UINTN                                                   CommBufferPayloadSize;
   UINTN                                                   TempCommBufferSize;
 
+#ifdef SANITIZE_RUN_ERRORS
 #ifdef SANITIZE_SMM_ASAN
   // Testing ASan stack buffer overflow.
   DEBUG((DEBUG_INFO, "Testing ASan...\n"));
@@ -572,6 +573,7 @@ SmmVariableHandler (
   // Modulo is used to force ASan think we access the buffer with a non-constant value.
   TestMSan((*CommBufferSize % 10));
 #endif
+#endif // #ifdef SANITIZE_RUN_ERRORS
 
   //
   // If input is invalid, stop processing this SMI
