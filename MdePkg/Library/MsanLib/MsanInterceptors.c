@@ -207,7 +207,6 @@ EFI_STATUS __msan__EFI_SMM_SYSTEM_TABLE2_SmmFreePool(
   FREE_POOL_HEADER  *FreePoolHdr;
   FreePoolHdr = (FREE_POOL_HEADER*)((POOL_HEADER*)Buffer - 1);
   UINTN Size = FreePoolHdr->Header.Size;
-  DEBUG ((DEBUG_INFO, "__msan__EFI_SMM_SYSTEM_TABLE2_SmmFreePool(): Size = %u\n", Size));
   Status = gSmst->SmmFreePool(Buffer);
   if (Status == EFI_SUCCESS) {
     __msan_poison(Buffer, Size);

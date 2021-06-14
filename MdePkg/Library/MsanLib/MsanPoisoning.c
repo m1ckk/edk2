@@ -7,9 +7,6 @@ void SetShadow(const void *ptr, uptr size, u8 value) {
   uptr shadow_beg = MEM_TO_SHADOW((uptr)ptr);
 
   if (!((uptr)ptr >= SMM_BEGIN && (((uptr)ptr + size) < SMM_END))) {
-    DEBUG ((DEBUG_INFO, "SetShadow() out of range.\n"));
-    DEBUG ((DEBUG_INFO, "ptr =          %p\n", ptr));
-    DEBUG ((DEBUG_INFO, "size =         %d\n", size));
     return;
   }
   memset((void *)shadow_beg, value, size);
@@ -71,13 +68,11 @@ void __msan_transfer_shadow(void *dst, void *src, uptr size) {
     // src is out of SMRAM.
     if (!(((uptr)dst >= SMM_BEGIN) && (((uptr)dst + size) < SMM_END))) {
       // dst is out of SMRAM.
-      DEBUG ((DEBUG_INFO, "__msan_transfer_shadow(): src out dst out\n"));
       return;
     } else {
       // dst is in SMRAM.
       // Use clean shadow, since we assume everything outside of SMRAM to be
       // initialized, and the source is outside of SMRAM.
-      DEBUG ((DEBUG_INFO, "__msan_transfer_shadow(): src out dst in\n"));
       __msan_unpoison(dst, size);
     }
   } else {
@@ -85,13 +80,11 @@ void __msan_transfer_shadow(void *dst, void *src, uptr size) {
     if (!(((uptr)dst >= SMM_BEGIN) && (((uptr)dst + size) < SMM_END))) {
       // dst is outside of SMRAM.
       // Do nothing, as we are copying memory to outside of SMRAM.
-      DEBUG ((DEBUG_INFO, "__msan_transfer_shadow(): src in dst out\n"));
       return;
     } else {
       // dst is in SMRAM.
       // This is the case in which both src and dst are in SMRAM.
       // Transfer the shadow values to the destination.
-      DEBUG ((DEBUG_INFO, "__msan_transfer_shadow(): src in dst in\n"));
       memcpy((void *)shadow_beg_dst, (void *)shadow_beg_src, size);
     }
   }
