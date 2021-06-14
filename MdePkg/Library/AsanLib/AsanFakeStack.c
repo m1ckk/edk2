@@ -14,6 +14,7 @@ FakeStack __asan_fs;
     (FAKE_STACK_SIZE * id) + (64 << id) * index)
 
 void initFakeStack(void) {
+    DEBUG ((DEBUG_INFO, "initFakeStack()\n"));
     for (int i = 0; i < NR_FAKE_STACKS; i++) {
         __asan_fs.IndexFakeFrame[i] = 0;
         __asan_fs.NrFakeFrames[i] = FAKE_STACK_SIZE / (64 << i);

@@ -54,6 +54,17 @@ then
 elif [[ $1 = "ASAN" ]]
 then
     echo "Building asan edk2."
+    DEFINES="-D SANITIZE_SMM_ASAN -D SANITIZE_SMM_ASAN_FAKESTACK"
+    ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -mllvm -asan-smm-tianocore-replace-external-functions=1 -fno-lto -g0 ${DEFINES}"
+    #ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -fno-lto ${DEFINES}"
+    SANITIZER_CC_FLAGS=${ASAN_CC_FLAGS}
+    SANITIZER_BLACKLIST="-fsanitize-blacklist=$(realpath MdePkg/Library/AsanLib/AsanBlacklist.txt)"
+    SANITIZER_BUILD_VARIABLES=${DEFINES}
+    shift
+# A build with ASan instrumentation
+elif [[ $1 = "ASAN_NO_FAKESTACK" ]]
+then
+    echo "Building asan edk2."
     DEFINES="-D SANITIZE_SMM_ASAN"
     ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -mllvm -asan-smm-tianocore-replace-external-functions=1 -fno-lto -g0 ${DEFINES}"
     #ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -fno-lto ${DEFINES}"

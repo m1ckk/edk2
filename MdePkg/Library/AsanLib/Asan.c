@@ -206,9 +206,12 @@ void __asan_init(void) {
   DEBUG ((DEBUG_INFO, "[ASAN] __asan_init(): started\n"));
   __asan_shadow_memory_dynamic_address = (void *)(uptr)SHADOW_OFFSET;
   callOnGlobals();
-  initFakeStack();
   __asan_inited = 1;
+  // This way we can also benchmark ASan with(out) FakeStack
+#ifdef SANITIZE_SMM_ASAN_FAKESTACK
+  initFakeStack();
   __asan_option_detect_stack_use_after_return = 1;
+#endif
   __asan_can_poison_memory = 1;
   DEBUG ((DEBUG_INFO, "[ASAN] __asan_init(): finished\n"));
   __asan_in_runtime = 0;
