@@ -161,16 +161,6 @@ void *__asan_memset(void *s, int c, size_t n) {
 void __asan_register_globals(const struct __asan_global *globals, uptr n) {
     int i;
     for (i = 0; i < n; i++) {
-        DEBUG ((DEBUG_INFO, "[ASAN] global.beg = 0x%lx\n", globals[i].beg));
-        DEBUG ((DEBUG_INFO, "[ASAN] global.size = 0x%lx\n", globals[i].size));
-        DEBUG ((DEBUG_INFO, "[ASAN] global.size_with_redzone = 0x%lx\n", globals[i].size_with_redzone));
-        DEBUG ((DEBUG_INFO, "[ASAN] global.name = 0x%p\n", globals[i].name));
-        DEBUG ((DEBUG_INFO, "[ASAN] global.module_name = 0x%p\n", globals[i].module_name));
-        DEBUG ((DEBUG_INFO, "[ASAN] global.name = %a\n", globals[i].name));
-        DEBUG ((DEBUG_INFO, "[ASAN] global.module_name = %a\n", globals[i].module_name));
-        DEBUG ((DEBUG_INFO, "[ASAN] global.location->filename = %a\n", globals[i].location->filename));
-        DEBUG ((DEBUG_INFO, "[ASAN] global.location->line_no = %d\n", globals[i].location->line_no));
-        DEBUG ((DEBUG_INFO, "[ASAN] global.location->column_no = %d\n", globals[i].location->column_no));
         PoisonRedZones(globals[i]);
     }
 }

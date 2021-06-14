@@ -180,9 +180,6 @@ EFI_STATUS __asan_SmmAllocatePool(
   ASAN_MALLOC_HOOK(res, Size);
 */
   *Buffer = (void *)user_beg;
-  DEBUG ((DEBUG_INFO, "__asan_SmmAllocatePool(): alloc_beg = %p\n", alloc_beg));
-  DEBUG ((DEBUG_INFO, "__asan_SmmAllocatePool(): user_beg = %p\n", user_beg));
-  DEBUG ((DEBUG_INFO, "__asan_SmmAllocatePool(): Buffer = %p\n", Buffer));
   return EFI_SUCCESS;
 }
 
@@ -192,7 +189,6 @@ EFI_STATUS __asan_SmmFreePool(
 ) {
   uptr p = (uptr)Buffer;
   ASSERT(AddrIsInMem(p));
-  DEBUG ((DEBUG_INFO, "__asan_SmmFreePool(): Buffer = %p\n", Buffer));
   uptr chunk_beg = (uptr)Buffer - kChunkHeaderSize;
   ChunkHeader *m = (ChunkHeader *)(chunk_beg);
 
