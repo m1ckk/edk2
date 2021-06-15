@@ -433,6 +433,17 @@ CascadeProcessVariables (
     FoundVarName = AllocateZeroPool(sizeof(CHAR16));
     NameSize = sizeof(CHAR16);
   }
+  //
+  // Call VariableServiceQueryVariableInfo for benchmarking.
+  //
+  UINT32 Attributes = EFI_VARIABLE_NON_VOLATILE |
+                      EFI_VARIABLE_BOOTSERVICE_ACCESS |
+                      EFI_VARIABLE_RUNTIME_ACCESS;
+  UINT64 MaximumVariableStorageSize, RemainingVariableStorageSize, MaximumVariableSize;
+  gRT->QueryVariableInfo(Attributes,
+                          &MaximumVariableStorageSize,
+                          &RemainingVariableStorageSize,
+                          &MaximumVariableSize);
 
   Status = gRT->GetNextVariableName (&NameSize, FoundVarName, &FoundVarGuid);
   if (Status == EFI_BUFFER_TOO_SMALL) {
