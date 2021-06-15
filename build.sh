@@ -45,6 +45,7 @@ then
     echo "Cleaning build directory."
     shift
     rm -rf Build
+    exit
 # A build without instrumentation
 elif [[ $1 = "CLEAN_BUILD" ]]
 then
