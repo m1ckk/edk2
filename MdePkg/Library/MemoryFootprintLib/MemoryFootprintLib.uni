@@ -1,0 +1,4 @@
+#string STR_MODULE_ABSTRACT             #language en-US "SMM memory check runtime library"
+
+#string STR_MODULE_DESCRIPTION          #language en-US "SMM memory check runtime library"
+
