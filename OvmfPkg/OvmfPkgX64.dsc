@@ -1070,6 +1070,9 @@
 !if $(SANITIZE_SMM_ASAN) == TRUE
       NULL|MdePkg/Library/AsanLib/AsanLib.inf
 !endif
+!if $(SANITIZE_SMM_MEMORY_FOOTPRINT) == TRUE
+  NULL|MdePkg/Library/MemoryFootprintLib/MemoryFootprintLib.inf
+!endif
 
 
   }

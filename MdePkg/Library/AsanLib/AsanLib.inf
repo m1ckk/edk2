@@ -46,3 +46,6 @@
 [Guids]
 
 [Depex]
+
+[BuildOptions]
+  *_*_*_CC_FLAGS = $(SANITIZER_MEMORY_FOOTPRINT)

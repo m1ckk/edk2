@@ -4,6 +4,8 @@
 
 FakeStack __asan_fs;
 
+extern UINTN fakestack_size;
+
 // Given an index and class ID, return a pointer to Nth FakeFrame that belongs
 // to the given class ID. The corresponding FakeStack is computed by adding
 // the base address (FAKE_STACK_START) to the ID multiplied by the size of a 
@@ -59,6 +61,9 @@ static FakeFrame *allocFakeFrame(UINTN class_id) {
             // That way we begin looking for new frames after the most recently
             // allocated frame.
             __asan_fs.IndexFakeFrame[class_id] = (index + 1) % nr_fake_frames;
+#ifdef SANITIZE_SMM_MEMORY_FOOTPRINT
+            fakestack_size += 64 << class_id;
+#endif
             FastPoisonShadow((UINTN)ff, 64 << class_id, 0);
             __asan_in_runtime = 0;
             return ff;
@@ -83,6 +88,9 @@ static void freeFakeFrame(UINTN ptr, UINTN class_id) {
     DEBUG ((DEBUG_INFO, "freeFakeFrame(): class_id =   %lu\n", class_id));
     DEBUG ((DEBUG_INFO, "freeFakeFrame(): ptr =        %p\n", ptr));
 */
+#ifdef SANITIZE_SMM_MEMORY_FOOTPRINT
+    fakestack_size -= 64 << class_id;
+#endif
     ff->flags = 0;
     FastPoisonShadow((UINTN)ff, 64 << class_id, kAsanStackAfterReturnMagic);
 }

@@ -498,9 +498,13 @@ static void TestMSan(int argc) {
     
 }
 
-
-
-
+#ifdef SANITIZE_SMM_MEMORY_FOOTPRINT
+extern UINTN lowest_sp;
+extern UINTN highest_sp;
+extern UINTN peak_heap_size;
+extern UINTN fakestack_size;
+#endif
+//
 /**
   Communication service SMI Handler entry.
 
@@ -537,6 +541,11 @@ SmmVariableHandler (
   )
 {
   DEBUG ((DEBUG_INFO, "SmmVariableHandler()@%p\n", SmmVariableHandler));
+
+#ifdef SANITIZE_SMM_MEMORY_FOOTPRINT
+  lowest_sp = 0xffffffffffffffff;
+  highest_sp = 0;
+#endif
 
   EFI_STATUS                                              Status;
   SMM_VARIABLE_COMMUNICATE_HEADER                         *SmmVariableFunctionHeader;
@@ -653,6 +662,9 @@ SmmVariableHandler (
                  (UINT8 *)SmmVariableHeader->Name + SmmVariableHeader->NameSize
                  );
       CopyMem (SmmVariableFunctionHeader->Data, mVariableBufferPayload, CommBufferPayloadSize);
+#ifdef SANITIZE_SMM_MEMORY_FOOTPRINT
+      DEBUG ((DEBUG_INFO, "GetVariable,"));
+#endif
       break;
 
     case SMM_VARIABLE_FUNCTION_GET_NEXT_VARIABLE_NAME:
@@ -698,6 +710,9 @@ SmmVariableHandler (
                  &GetNextVariableName->Guid
                  );
       CopyMem (SmmVariableFunctionHeader->Data, mVariableBufferPayload, CommBufferPayloadSize);
+#ifdef SANITIZE_SMM_MEMORY_FOOTPRINT
+      DEBUG ((DEBUG_INFO, "GetNextVariableVariable,"));
+#endif
       break;
 
     case SMM_VARIABLE_FUNCTION_SET_VARIABLE:
@@ -752,6 +767,9 @@ SmmVariableHandler (
                  SmmVariableHeader->DataSize,
                  (UINT8 *)SmmVariableHeader->Name + SmmVariableHeader->NameSize
                  );
+#ifdef SANITIZE_SMM_MEMORY_FOOTPRINT
+      DEBUG ((DEBUG_INFO, "SetVariable,"));
+#endif
       break;
 
     case SMM_VARIABLE_FUNCTION_QUERY_VARIABLE_INFO:
@@ -767,6 +785,9 @@ SmmVariableHandler (
                  &QueryVariableInfo->RemainingVariableStorageSize,
                  &QueryVariableInfo->MaximumVariableSize
                  );
+#ifdef SANITIZE_SMM_MEMORY_FOOTPRINT
+      DEBUG ((DEBUG_INFO, "QueryVariableInfo,"));
+#endif
       break;
 
     case SMM_VARIABLE_FUNCTION_GET_PAYLOAD_SIZE:
@@ -1052,6 +1073,9 @@ EXIT:
 
   SmmVariableFunctionHeader->ReturnStatus = Status;
 
+#ifdef SANITIZE_SMM_MEMORY_FOOTPRINT
+  DEBUG ((DEBUG_INFO, "peak_stack_size,0x%x,peak_heap_size,0x%x,fakestack_size,0x%x\n", highest_sp - lowest_sp, peak_heap_size, fakestack_size));
+#endif
   return EFI_SUCCESS;
 }
 
