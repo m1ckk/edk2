@@ -16,6 +16,15 @@ qemu_file = sys.argv[3]
 
 def computer_shadow_bytes(defense, section_name, num_bytes):
     # Check section names.
+    # Sections which we skip
+    if "handler" in words[1]:
+        return 0
+    if "jumptable" in words[1]:
+        return 0
+    if "init_array" in words[1]:
+        return 0
+    if "reloc" in words[1]:
+        return 0
     if "text" in section_name:
         return 0
     # Check defense for the multiplier.
@@ -53,13 +62,6 @@ for idx, line in enumerate(lines[section_idx:]):
     words = line.split()
     # Skip the line after section info, since we don't need it.
     if idx % 2:
-        continue
-    # Sections which we skip
-    if "handler" in words[1]:
-        continue
-    if "jumptable" in words[1]:
-        continue
-    if "init_array" in words[1]:
         continue
     # Example line of objdump output:
     #   0 .text         00029adc  0000000000001000  0000000000001000  00000280  2**4
