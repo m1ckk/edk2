@@ -1,1 +1,3 @@
 qemu-system-x86_64 -vga qxl -machine q35 -m 2G -global ICH9-LPC.disable_s3=1 -drive if=pflash,format=raw,unit=0,file=../Build/OvmfX64/DEBUG_CLANGPDB/FV/OVMF_CODE.fd,readonly=on -drive if=pflash,format=raw,file=../Build/OvmfX64/DEBUG_CLANGPDB/FV/OVMF_VARS.fd -debugcon file:./debug.log -global isa-debugcon.iobase=0x402 -monitor stdio -d exec,nochain -singlestep -dfilter 0x7F000000..0x80000000
+# Memory footprint command
+#qemu-system-x86_64 -vga qxl -machine q35 -m 2G -global ICH9-LPC.disable_s3=1 -drive if=pflash,format=raw,unit=0,file=../Build/OvmfX64/DEBUG_CLANGPDB/FV/OVMF_CODE.fd,readonly=on -drive if=pflash,format=raw,file=../Build/OvmfX64/DEBUG_CLANGPDB/FV/OVMF_VARS.fd -debugcon file:./debug.log -global isa-debugcon.iobase=0x402
