@@ -13,7 +13,7 @@ section_file = sys.argv[2]
 # The output of QEMU
 qemu_file = sys.argv[3]
 
-
+# Computes the amount of shadow bytes used by a defense for a section name.
 def computer_shadow_bytes(defense, section_name, num_bytes):
     # Check section names.
     # Sections which we skip
@@ -36,6 +36,7 @@ def computer_shadow_bytes(defense, section_name, num_bytes):
     else:
         return 0
 
+# A function to compute the overhead when a LaTeX table format is given.
 def compute_overhead():
     with open("/tmp/test.txt", "r") as f:
         lines = [line for line in f.read().split("\n") if line]
@@ -76,7 +77,7 @@ total_bytes = 0
 
 for idx, line in enumerate(lines[section_idx:]):
     words = line.split()
-    # Skip the line after section info, since we don't need it.
+    # Skip every other line of the objdump output.
     if idx % 2:
         continue
     # Example line of objdump output:
@@ -113,6 +114,7 @@ for line in qemu_lines:
     stack_size = int(words[2], 16) + int(words[6], 16)
     heap_size = int(words[4], 16)
 
+    # Compute peak sizes.
     if heap_size > peak_heap_size:
         peak_heap_size = heap_size
     if stack_size > function_stacks[func]:
@@ -131,12 +133,13 @@ for func in function_stacks.keys():
     # Retrieve the largest stack size of the different functions.
     if function_stacks[func] > max_stack_size:
         max_stack_size = function_stacks[func]
-    csv_text.append(",".join([defense, func, "peak_stack_size", hex(function_stacks[func])]))
+    csv_text.append(",".join([defense, func, hex(function_stacks[func])]))
 
 # Add the largest stack size we observed
 total_bytes += max_stack_size
 csv_text.append(",".join([defense, "total_peak_size", hex(total_bytes)]))
 
-for csv in csv_text:
+# Only show the relevant information, i.e., function stack usage and total used
+# bytes.
+for csv in csv_text[-5:]:
     print(csv)
-
