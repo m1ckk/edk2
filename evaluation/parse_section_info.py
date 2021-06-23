@@ -36,6 +36,22 @@ def computer_shadow_bytes(defense, section_name, num_bytes):
     else:
         return 0
 
+def compute_overhead():
+    with open("/tmp/test.txt", "r") as f:
+        lines = [line for line in f.read().split("\n") if line]
+    footprints = {}
+    for line in lines:
+        words = line.replace(" ", "").split("&")
+        func = words[0]
+        base = int(words[1], 16)
+        overhead = [float(int(x, 16)) / base for x in words[1:]]
+        footprints[func] = overhead
+    for func in footprints.keys():
+        text = ""
+        text += func + ","
+        text += ",".join([str("%.2f" % x) for x in footprints[func]])
+        print(text)
+
 #########################################################
 ######## PARSE OBJDUMP OUTPUT
 #########################################################
@@ -81,9 +97,9 @@ for idx, line in enumerate(lines[section_idx:]):
 pattern = r"\w{10,30},\w{15},\w{2,14},\w{14},\w{2,14},\w{14},\w{2,14}"
 
 function_stacks = { "GetVariable" : 0,
-                    "SetVariable" : 0,
+                    "GetNextVariableVariable" : 0,
                     "QueryVariableInfo" : 0,
-                    "GetNextVariableVariable" : 0}
+                    "SetVariable" : 0}
 peak_heap_size = 0
 
 with open(qemu_file, "r") as f:
@@ -110,8 +126,16 @@ num_heap_shadow_bytes = computer_shadow_bytes(defense, "", peak_heap_size)
 csv_text.append(",".join([defense, "shadow_peak_heap_size", hex(num_heap_shadow_bytes)]))
 total_bytes += num_heap_shadow_bytes
 
+max_stack_size = 0
 for func in function_stacks.keys():
-    csv_text.append(",".join([defense, func, "peak_size_size", hex(total_bytes + function_stacks[func])]))
+    # Retrieve the largest stack size of the different functions.
+    if function_stacks[func] > max_stack_size:
+        max_stack_size = function_stacks[func]
+    csv_text.append(",".join([defense, func, "peak_stack_size", hex(function_stacks[func])]))
+
+# Add the largest stack size we observed
+total_bytes += max_stack_size
+csv_text.append(",".join([defense, "total_peak_size", hex(total_bytes)]))
 
 for csv in csv_text:
     print(csv)
