@@ -44,7 +44,7 @@ EFI_STATUS check_heap_SmmFreePool (
 UINTN highest_sp, lowest_sp, peak_stack_size;
 
 void check_stack_size(void) {
-  UINTN sp;
+  UINTN sp, stack_size;
   asm volatile ("movq %%rsp, %0;" 
    :"=r"(sp)        /* output */
    :
@@ -54,8 +54,11 @@ void check_stack_size(void) {
     lowest_sp = sp;
   if (sp > highest_sp)
     highest_sp = sp;
-  if ((highest_sp - lowest_sp) > peak_stack_size)
-    peak_stack_size = highest_sp - lowest_sp;
+
+  stack_size = (highest_sp - lowest_sp) + fakestack_size;
+
+  if (stack_size > peak_stack_size)
+    peak_stack_size = stack_size;
 }
 
 EFI_STATUS
