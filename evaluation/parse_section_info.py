@@ -101,13 +101,14 @@ function_stacks = { "GetVariable" : 0,
                     "GetNextVariableVariable" : 0,
                     "QueryVariableInfo" : 0,
                     "SetVariable" : 0}
-peak_heap_size = 0
 
 with open(qemu_file, "r") as f:
   qemu_lines = [line for line in f.read().split("\n") if re.search(pattern, line)]
 
 # Loop over the filtered output, which contains lines like:
 #   GetVariable,peak_stack_size,0x400,peak_heap_size,0xA01158E3,fakestack_size,0x0
+peak_heap_size = 0
+max_stack_size = 0
 for line in qemu_lines:
     words = line.split(",")
     func = words[0]
@@ -117,29 +118,27 @@ for line in qemu_lines:
     # Compute peak sizes.
     if heap_size > peak_heap_size:
         peak_heap_size = heap_size
+    if stack_size > max_stack_size:
+        max_stack_size = stack_size
     if stack_size > function_stacks[func]:
         function_stacks[func] = stack_size
 
 # Print max heap size
-csv_text.append(",".join([defense, "peak_heap_size", hex(peak_heap_size)]))
+csv_text.append(",".join([defense, "peak_heap_size", str(peak_heap_size)]))
 total_bytes += peak_heap_size
+# Add peak stack size to total memory footprint.
+total_bytes += max_stack_size
 # Print heap shadow bytes
 num_heap_shadow_bytes = computer_shadow_bytes(defense, "", peak_heap_size)
-csv_text.append(",".join([defense, "shadow_peak_heap_size", hex(num_heap_shadow_bytes)]))
+csv_text.append(",".join([defense, "shadow_peak_heap_size", str(num_heap_shadow_bytes)]))
 total_bytes += num_heap_shadow_bytes
 
-max_stack_size = 0
 for func in function_stacks.keys():
-    # Retrieve the largest stack size of the different functions.
-    if function_stacks[func] > max_stack_size:
-        max_stack_size = function_stacks[func]
-    csv_text.append(",".join([defense, func, hex(function_stacks[func])]))
+    csv_text.append(",".join([defense, func, str(function_stacks[func])]))
 
-# Add the largest stack size we observed
-total_bytes += max_stack_size
-csv_text.append(",".join([defense, "total_peak_size", hex(total_bytes)]))
+csv_text.append(",".join([defense, "total_peak_size", str(total_bytes)]))
 
 # Only show the relevant information, i.e., function stack usage and total used
 # bytes.
-for csv in csv_text[-5:]:
+for csv in csv_text[-1:]:
     print(csv)
