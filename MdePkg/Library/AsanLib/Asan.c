@@ -7,40 +7,11 @@
 #include "AsanPoisoning.h"
 #include "AsanFakeStack.h"
 
-
 bool __asan_option_detect_stack_use_after_return = 0;
 bool __asan_inited = 0;
 bool __asan_in_runtime = 0;
 bool __asan_can_poison_memory = 0;
 void *__asan_shadow_memory_dynamic_address;
-
-#define GET_CALLER_PC() (uptr) __builtin_return_address(0)
-#define GET_CURRENT_FRAME() (uptr) __builtin_frame_address(0)
-
-// Use this macro if you want to print stack trace with the caller
-// of the current function in the top frame.
-#define GET_CALLER_PC_BP \
-  uptr bp = GET_CURRENT_FRAME();              \
-  uptr pc = GET_CALLER_PC();
-
-#define GET_CALLER_PC_BP_SP \
-  GET_CALLER_PC_BP;                           \
-  uptr local_stack;                           \
-  uptr sp = (uptr)&local_stack
-
-bool CanPoisonMemory(void) {
-  return __asan_can_poison_memory;
-}
-
-void ReportGenericError(uptr pc, uptr bp, uptr sp, uptr addr, bool is_write,
-        uptr access_size, u32 exp, bool fatal) {
-    u8 *shadow_addr = (u8 *)MemToShadow(addr);
-    u8 shadow_val = *shadow_addr;
-    //int bug_idx = 0;
-
-    DEBUG ((DEBUG_INFO, "[ASAN] ERROR: pc=%p, sp=%p, addr=%p, shadow value=%x, is_write=%x\n", (void *)pc, (void *)sp, (void *)addr, shadow_val, is_write));
-}
-
 
 #define ASAN_DECLARATION(type, is_write, size)                              \
 void __asan_report_exp_ ## type ## size(uptr addr) {                        \
@@ -137,6 +108,24 @@ ASAN_DECLARATION(store, true, 16);
 ASAN_DECLARATION(store, true, n);
 ASAN_DECLARATION(store, true, N);
 
+bool CanPoisonMemory(void) {
+  return __asan_can_poison_memory;
+}
+
+void ReportGenericError(uptr pc, uptr bp, uptr sp, uptr addr, bool is_write,
+        uptr access_size, u32 exp, bool fatal) {
+    u8 *shadow_addr = (u8 *)MemToShadow(addr);
+    u8 shadow_val = *shadow_addr;
+    //int bug_idx = 0;
+
+    DEBUG ((DEBUG_INFO, "[ASAN] ERROR: pc=%p, sp=%p, addr=%p, shadow value=%x, is_write=%x\n", (void *)pc, (void *)sp, (void *)addr, shadow_val, is_write));
+    DEBUG ((DEBUG_INFO, "Stack trace:\n"));
+    DEBUG ((DEBUG_INFO, "Return address 0 = %p\n", __builtin_return_address(0)));
+    DEBUG ((DEBUG_INFO, "Return address 1 = %p\n", __builtin_return_address(1)));
+    DEBUG ((DEBUG_INFO, "Return address 2 = %p\n", __builtin_return_address(2)));
+    DEBUG ((DEBUG_INFO, "Return address 3 = %p\n", __builtin_return_address(3)));
+}
+
 void __asan_version_mismatch_check_v8(void) {
   DEBUG ((DEBUG_INFO, "[ASAN] __asan_version_mismatch_check_v8()\n"));
 }
@@ -149,11 +138,14 @@ void __asan_handle_no_return(void) {
 }
 
 void *__asan_memcpy(uptr dst, uptr src, size_t size) {
+  ASAN_READ_RANGE(src, size);
+  ASAN_WRITE_RANGE(dst, size);
   _memcpy((void *)dst, (void *)src, size);
   return (void *)dst;
 }
 
 void *__asan_memset(void *s, int c, size_t n) {
+  ASAN_WRITE_RANGE(s, n);
   _memset(s, c, n);
   return s;
 }
@@ -179,11 +171,7 @@ static void callOnGlobals(void) {
   __asan_global *end = &__asan_globals_end;
   uptr bytediff = (uptr)end - (uptr)start;
   if (bytediff % sizeof(__asan_global) != 0) {
-#if defined(SANITIZER_DLL_THUNK) || defined(SANITIZER_DYNAMIC_RUNTIME_THUNK)
-    __debugbreak();
-#else
     DEBUG((DEBUG_INFO, "[ASAN] corrupt asan global array\n"));
-#endif
   }
   // We know end >= start because the linker sorts the portion after the dollar
   // sign alphabetically.
@@ -191,11 +179,18 @@ static void callOnGlobals(void) {
   __asan_register_globals(start, n);
 }
 
+// Poison globals and possibly setup the FakeStack.
 void __asan_init(void) {
   __asan_in_runtime = 1;
   DEBUG ((DEBUG_INFO, "[ASAN] __asan_init(): started\n"));
   __asan_shadow_memory_dynamic_address = (void *)(uptr)SHADOW_OFFSET;
   callOnGlobals();
+
+// Only use the FakeStack if enabled.
+#ifdef SANITIZE_SMM_ASAN_FAKESTACK
+  initFakeStack();
+  __asan_option_detect_stack_use_after_return = 1;
+#endif
   initFakeStack();
   __asan_inited = 1;
   __asan_option_detect_stack_use_after_return = 1;

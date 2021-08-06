@@ -45,5 +45,9 @@ IsZeroBuffer (
   ASSERT (!(Buffer == NULL && Length > 0));
   ASSERT ((Length - 1) <= (MAX_ADDRESS - (UINTN)Buffer));
 
+#ifdef SANITIZE_SMM_ASAN
+  __asan_read_range(Buffer, Length);
+#endif
+
   return InternalMemIsZeroBuffer (Buffer, Length);
 }

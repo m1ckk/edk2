@@ -22,6 +22,32 @@ static const u64 kDefaultShadowScale = 3;
 #define SHADOW_GRANULARITY (1ULL << SHADOW_SCALE)
 #define MEM_TO_SHADOW(mem) (((mem & ~(AND_MASK)) >> SHADOW_SCALE) + (SHADOW_OFFSET))
 
+#define GET_CALLER_PC() (uptr) __builtin_return_address(0)
+#define GET_CURRENT_FRAME() (uptr) __builtin_frame_address(0)
+
+// Use this macro if you want to print stack trace with the caller
+// of the current function in the top frame.
+#define GET_CALLER_PC_BP \
+  uptr bp = GET_CURRENT_FRAME();              \
+  uptr pc = GET_CALLER_PC();
+
+#define GET_CALLER_PC_BP_SP \
+  GET_CALLER_PC_BP;                           \
+  uptr local_stack;                           \
+  uptr sp = (uptr)&local_stack
+
+// Use this macro if you want to print stack trace with the current
+// function in the top frame.
+#define GET_CURRENT_PC_BP \
+  uptr bp = GET_CURRENT_FRAME();              \
+  uptr pc = GET_CALLER_PC();
+
+#define GET_CURRENT_PC_BP_SP \
+  GET_CURRENT_PC_BP;                          \
+  uptr local_stack;                           \
+  uptr sp = (uptr)&local_stack
+
+
 // This structure is used to describe the source location of a place where
 // global was defined.
 struct __asan_global_source_location {
@@ -118,9 +144,72 @@ static inline uptr Log2(uptr x) {
 static inline bool AddrIsAlignedByGranularity(uptr a) {
   return (a & (SHADOW_GRANULARITY - 1)) == 0;
 }
+static inline bool AddressIsPoisoned(uptr a) {
+  const uptr kAccessSize = 1;
+  u8 *shadow_address = (u8*)MEM_TO_SHADOW(a);
+  u8 shadow_value = *shadow_address;
+  if (shadow_value) {
+    u8 last_accessed_byte = (a & (SHADOW_GRANULARITY - 1))
+                                 + kAccessSize - 1;
+    return (last_accessed_byte >= shadow_value);
+  }
+  return false;
+}
 
+// Return true if we can quickly decide that the region is unpoisoned.
+// We assume that a redzone is at least 16 bytes.
+static inline bool QuickCheckForUnpoisonedRegion(uptr beg, uptr size) {
+  if (size == 0) return true;
+  if (size <= 32)
+    return !AddressIsPoisoned(beg) &&
+           !AddressIsPoisoned(beg + size - 1) &&
+           !AddressIsPoisoned(beg + size / 2);
+  if (size <= 64)
+    return !AddressIsPoisoned(beg) &&
+           !AddressIsPoisoned(beg + size / 4) &&
+           !AddressIsPoisoned(beg + size - 1) &&
+           !AddressIsPoisoned(beg + 3 * size / 4) &&
+           !AddressIsPoisoned(beg + size / 2);
+  return false;
+}
+
+static inline bool mem_is_zero(const char *beg, uptr size) {
+  const char *end = beg + size;
+  uptr *aligned_beg = (uptr *)RoundUpTo((uptr)beg, sizeof(uptr));
+  uptr *aligned_end = (uptr *)RoundDownTo((uptr)end, sizeof(uptr));
+  uptr all = 0;
+  // Prologue.
+  for (const char *mem = beg; mem < (char*)aligned_beg && mem < end; mem++)
+    all |= *mem;
+  // Aligned loop.
+  for (; aligned_beg < aligned_end; aligned_beg++)
+    all |= *aligned_beg;
+  // Epilogue.
+  if ((char*)aligned_end >= beg)
+    for (const char *mem = (char*)aligned_end; mem < end; mem++)
+      all |= *mem;
+  return all == 0;
+}
+
+#define ACCESS_MEMORY_RANGE(offset, size, isWrite) do {                 \
+    uptr __offset = (uptr)(offset);                                     \
+    uptr __size = (uptr)(size);                                         \
+    uptr __bad = 0;                                                     \
+    if (!QuickCheckForUnpoisonedRegion(__offset, __size) &&             \
+        (__bad = __asan_region_is_poisoned(__offset, __size))) {        \
+      GET_CURRENT_PC_BP_SP;                                             \
+      ReportGenericError(pc, bp, sp, __bad, isWrite, __size, 0, false); \
+    }                                                                   \
+  } while (0)
+
+#define ASAN_READ_RANGE(offset, size)       \
+  ACCESS_MEMORY_RANGE(offset, size, false)
+#define ASAN_WRITE_RANGE(offset, size)      \
+  ACCESS_MEMORY_RANGE(offset, size, true)
 
 bool CanPoisonMemory(void);
 void PoisonShadow(uptr addr, uptr size, u8 value);
+void ReportGenericError(uptr pc, uptr bp, uptr sp, uptr addr, bool is_write,
+        uptr access_size, u32 exp, bool fatal);
 
 #endif

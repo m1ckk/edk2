@@ -95,7 +95,6 @@ static void freeFakeFrame(UINTN ptr, UINTN class_id) {
     FastPoisonShadow((UINTN)ff, 64 << class_id, kAsanStackAfterReturnMagic);
 }
 
-
 #define DEFINE_STACK_MALLOC_FREE_WITH_CLASS_ID(class_id)                    \
 void *__asan_stack_malloc_##class_id(uptr size) {                           \
     return allocFakeFrame(class_id);                                        \

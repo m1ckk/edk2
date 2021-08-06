@@ -12,6 +12,6 @@ __attribute__((always_inline)) void FastPoisonShadowPartialRightRedzone(
                                                       uptr redzone_size,
                                                       u8 value);
 void PoisonShadow(uptr addr, uptr size, u8 value);
-void PoisonRedZones(const struct __asan_global g) ;
-
+void PoisonRedZones(const struct __asan_global g);
+uptr __asan_region_is_poisoned(uptr beg, uptr size);
 #endif

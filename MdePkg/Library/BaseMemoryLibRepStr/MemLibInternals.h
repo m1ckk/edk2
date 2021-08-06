@@ -25,6 +25,9 @@
 #ifdef SANITIZE_SMM_MSAN
   #include <Msan.h>
 #endif
+#ifdef SANITIZE_SMM_ASAN
+  #include <Asan.h>
+#endif
 
 
 /**

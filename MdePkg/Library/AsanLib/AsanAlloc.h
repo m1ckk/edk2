@@ -1,7 +1,6 @@
 #ifndef __ASAN_ALLOC_H__
 #define __ASAN_ALLOC_H__
 
-
 #include <Pi/PiSmmCis.h>
 
 EFI_STATUS __asan_SmmAllocatePool(

@@ -58,6 +58,9 @@ SetMem64 (
   __msan_unpoison(Buffer, Length);
   __msan_unpoison_param(3);
 #endif
+#ifdef SANITIZE_SMM_ASAN
+  __asan_write_range(Buffer, Length);
+#endif
 
   return InternalMemSetMem64 (Buffer, Length / sizeof (Value), Value);
 }

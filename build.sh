@@ -55,12 +55,13 @@ then
 elif [[ $1 = "ASAN" ]]
 then
     echo "Building asan edk2."
-    DEFINES="-D SANITIZE_SMM_ASAN -D SANITIZE_SMM_ASAN_FAKESTACK"
-    ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -mllvm -asan-smm-tianocore-replace-external-functions=1 -fno-lto -g0 ${DEFINES}"
+    DEFINES="-D SANITIZE_SMM_ASAN"
+    ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -mllvm -asan-smm-tianocore-replace-external-functions=1 -fno-lto -g0 -fno-omit-frame-pointer ${DEFINES}"
     #ASAN_CC_FLAGS="-fsanitize=address -mllvm -asan-smm-tianocore=1 -mllvm -asan-recover=1 -fno-lto ${DEFINES}"
     SANITIZER_CC_FLAGS=${ASAN_CC_FLAGS}
     SANITIZER_BLACKLIST="-fsanitize-blacklist=$(realpath MdePkg/Library/AsanLib/AsanBlacklist.txt)"
     SANITIZER_BUILD_VARIABLES=${DEFINES}
+    SMM_DEFENSE_RUNTIME_FLAGS="-D SANITIZE_SMM_ASAN_FAKESTACK"
     shift
 # A build with ASan instrumentation
 elif [[ $1 = "ASAN_NO_FAKESTACK" ]]
@@ -91,12 +92,13 @@ fi
 
 SFI_CC_FLAGS='-fsanitize=cfi #-fno-sanitize=cfi-icall#cfi-cast-strict,cfi-derived-cast#,cfi-mfcall,cfi-unrelated-cast,cfi-nvcall,cfi-vcall'
 
-SANITIZER_MEMORY_FOOTPRINT="-Xclang -load -Xclang /mnt/part5/llvm-project/build/lib/LLVMSmmMemoryFootprintLogger.so -D SANITIZE_SMM_MEMORY_FOOTPRINT"
-SANITIZER_BUILD_VARIABLES="$SANITIZER_BUILD_VARIABLES -D SANITIZE_SMM_MEMORY_FOOTPRINT"
+#SMM_DEFENSE_RUNTIME_FLAGS="-Xclang -load -Xclang /mnt/part5/llvm-project/build/lib/LLVMSmmMemoryFootprintLogger.so -D SANITIZE_SMM_MEMORY_FOOTPRINT"
+#SANITIZER_BUILD_VARIABLES="$SANITIZER_BUILD_VARIABLES -D SANITIZE_SMM_MEMORY_FOOTPRINT"
+SANITIZER_BUILD_VARIABLES="$SANITIZER_BUILD_VARIABLES"
 
 echo "SANITIZER_CC_FLAGS = ${SANITIZER_CC_FLAGS}"
 echo "SANITIZER_BLACKLIST = ${SANITIZER_BLACKLIST}"
 echo "SANITIZER_BUILD_VARIABLES = ${SANITIZER_BUILD_VARIABLES}"
 printf "\n\n\n"
 
-source edksetup.sh && SANITIZER_CC_FLAGS=${SANITIZER_CC_FLAGS} SANITIZER_BLACKLIST=${SANITIZER_BLACKLIST} SANITIZER_MEMORY_FOOTPRINT=$SANITIZER_MEMORY_FOOTPRINT build -a X64 -p OvmfPkg/OvmfPkgX64.dsc -t CLANGPDB -D SMM_REQUIRE -D SANITIZE_SMM ${SANITIZER_BUILD_VARIABLES}
+source edksetup.sh && SANITIZER_CC_FLAGS=${SANITIZER_CC_FLAGS} SANITIZER_BLACKLIST=${SANITIZER_BLACKLIST} SMM_DEFENSE_RUNTIME_FLAGS=$SMM_DEFENSE_RUNTIME_FLAGS build -a X64 -p OvmfPkg/OvmfPkgX64.dsc -t CLANGPDB -D SMM_REQUIRE -D SANITIZE_SMM ${SANITIZER_BUILD_VARIABLES}

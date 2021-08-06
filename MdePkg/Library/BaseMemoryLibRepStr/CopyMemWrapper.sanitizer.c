@@ -58,6 +58,10 @@ CopyMem (
   __msan_transfer_shadow(DestinationBuffer, (void *)SourceBuffer, Length);
   __msan_unpoison_param(3);
 #endif
+#ifdef SANITIZE_SMM_ASAN
+  __asan_read_range(SourceBuffer, Length);
+  __asan_write_range(DestinationBuffer, Length);
+#endif
 
   return InternalMemCopyMem (DestinationBuffer, SourceBuffer, Length);
 }
