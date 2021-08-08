@@ -621,12 +621,7 @@ SmmVariableHandler (
       //
       // Copy the input communicate buffer payload to pre-allocated SMM variable buffer payload.
       //
-#ifdef SANITIZE_SMM_ASAN
-      // Prevent ASan from retrieving shadow memory for CopyMem which retrieves data from outside of SMRAM.
-      CopyMemNoAsan (mVariableBufferPayload, SmmVariableFunctionHeader->Data, CommBufferPayloadSize);
-#else
       CopyMem (mVariableBufferPayload, SmmVariableFunctionHeader->Data, CommBufferPayloadSize);
-#endif
       SmmVariableHeader = (SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *) mVariableBufferPayload;
       if (((UINTN)(~0) - SmmVariableHeader->DataSize < OFFSET_OF(SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE, Name)) ||
          ((UINTN)(~0) - SmmVariableHeader->NameSize < OFFSET_OF(SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE, Name) + SmmVariableHeader->DataSize)) {
@@ -669,12 +664,7 @@ SmmVariableHandler (
                  &SmmVariableHeader->DataSize,
                  (UINT8 *)SmmVariableHeader->Name + SmmVariableHeader->NameSize
                  );
-#ifdef SANITIZE_SMM_ASAN
-      // Prevent ASan from retrieving shadow memory for CopyMem which writes data to outside of SMRAM.
-      CopyMemNoAsan (SmmVariableFunctionHeader->Data, mVariableBufferPayload, CommBufferPayloadSize);
-#else
       CopyMem (SmmVariableFunctionHeader->Data, mVariableBufferPayload, CommBufferPayloadSize);
-#endif
 
 #ifdef SANITIZE_SMM_MEMORY_FOOTPRINT
       DEBUG ((DEBUG_INFO, "GetVariable,"));
@@ -689,12 +679,7 @@ SmmVariableHandler (
       //
       // Copy the input communicate buffer payload to pre-allocated SMM variable buffer payload.
       //
-#ifdef SANITIZE_SMM_ASAN
-      // Prevent ASan from retrieving shadow memory for CopyMem which writes data to outside of SMRAM.
-      CopyMemNoAsan (mVariableBufferPayload, SmmVariableFunctionHeader->Data, CommBufferPayloadSize);
-#else
       CopyMem (mVariableBufferPayload, SmmVariableFunctionHeader->Data, CommBufferPayloadSize);
-#endif
       GetNextVariableName = (SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME *) mVariableBufferPayload;
       if ((UINTN)(~0) - GetNextVariableName->NameSize < OFFSET_OF(SMM_VARIABLE_COMMUNICATE_GET_NEXT_VARIABLE_NAME, Name)) {
         //
@@ -728,12 +713,7 @@ SmmVariableHandler (
                  GetNextVariableName->Name,
                  &GetNextVariableName->Guid
                  );
-#ifdef SANITIZE_SMM_ASAN
-      // Prevent ASan from retrieving shadow memory for CopyMem which writes data to outside of SMRAM.
-      CopyMemNoAsan (SmmVariableFunctionHeader->Data, mVariableBufferPayload, CommBufferPayloadSize);
-#else
       CopyMem (SmmVariableFunctionHeader->Data, mVariableBufferPayload, CommBufferPayloadSize);
-#endif
 #ifdef SANITIZE_SMM_MEMORY_FOOTPRINT
       DEBUG ((DEBUG_INFO, "GetNextVariableVariable,"));
 #endif
@@ -747,12 +727,7 @@ SmmVariableHandler (
       //
       // Copy the input communicate buffer payload to pre-allocated SMM variable buffer payload.
       //
-#ifdef SANITIZE_SMM_ASAN
-      // Prevent ASan from retrieving shadow memory for CopyMem which writes data to outside of SMRAM.
-      CopyMemNoAsan (mVariableBufferPayload, SmmVariableFunctionHeader->Data, CommBufferPayloadSize);
-#else
       CopyMem (mVariableBufferPayload, SmmVariableFunctionHeader->Data, CommBufferPayloadSize);
-#endif
       SmmVariableHeader = (SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE *) mVariableBufferPayload;
       if (((UINTN)(~0) - SmmVariableHeader->DataSize < OFFSET_OF(SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE, Name)) ||
          ((UINTN)(~0) - SmmVariableHeader->NameSize < OFFSET_OF(SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE, Name) + SmmVariableHeader->DataSize)) {
@@ -904,12 +879,7 @@ SmmVariableHandler (
       //
       // Copy the input communicate buffer payload to pre-allocated SMM variable buffer payload.
       //
-#ifdef SANITIZE_SMM_ASAN
-      // Prevent ASan from retrieving shadow memory for CopyMem which writes data to outside of SMRAM.
-      CopyMemNoAsan (mVariableBufferPayload, SmmVariableFunctionHeader->Data, CommBufferPayloadSize);
-#else
       CopyMem (mVariableBufferPayload, SmmVariableFunctionHeader->Data, CommBufferPayloadSize);
-#endif
       CommVariableProperty = (SMM_VARIABLE_COMMUNICATE_VAR_CHECK_VARIABLE_PROPERTY *) mVariableBufferPayload;
       if ((UINTN) (~0) - CommVariableProperty->NameSize < OFFSET_OF (SMM_VARIABLE_COMMUNICATE_VAR_CHECK_VARIABLE_PROPERTY, Name)) {
         //
@@ -948,12 +918,7 @@ SmmVariableHandler (
                  &CommVariableProperty->Guid,
                  &CommVariableProperty->VariableProperty
                  );
-#ifdef SANITIZE_SMM_ASAN
-      // Prevent ASan from retrieving shadow memory for CopyMem which writes data to outside of SMRAM.
-      CopyMemNoAsan (SmmVariableFunctionHeader->Data, mVariableBufferPayload, CommBufferPayloadSize);
-#else
       CopyMem (SmmVariableFunctionHeader->Data, mVariableBufferPayload, CommBufferPayloadSize);
-#endif
       break;
     case SMM_VARIABLE_FUNCTION_INIT_RUNTIME_VARIABLE_CACHE_CONTEXT:
       if (CommBufferPayloadSize < sizeof (SMM_VARIABLE_COMMUNICATE_RUNTIME_VARIABLE_CACHE_CONTEXT)) {
@@ -970,12 +935,7 @@ SmmVariableHandler (
       //
       // Copy the input communicate buffer payload to the pre-allocated SMM variable payload buffer.
       //
-#ifdef SANITIZE_SMM_ASAN
-      // Prevent ASan from retrieving shadow memory for CopyMem which writes data to outside of SMRAM.
-      CopyMemNoAsan (mVariableBufferPayload, SmmVariableFunctionHeader->Data, CommBufferPayloadSize);
-#else
       CopyMem (mVariableBufferPayload, SmmVariableFunctionHeader->Data, CommBufferPayloadSize);
-#endif
       RuntimeVariableCacheContext = (SMM_VARIABLE_COMMUNICATE_RUNTIME_VARIABLE_CACHE_CONTEXT *) mVariableBufferPayload;
 
       //

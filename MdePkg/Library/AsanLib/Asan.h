@@ -47,6 +47,8 @@ static const u64 kDefaultShadowScale = 3;
   uptr local_stack;                           \
   uptr sp = (uptr)&local_stack
 
+// Take off-by-one into account.
+#define AddrRangeInSmm(p, s) (AddrIsInMem((uptr)p) && AddrIsInMem((uptr)p + s - 1))
 
 // This structure is used to describe the source location of a place where
 // global was defined.
@@ -94,16 +96,18 @@ extern bool __asan_inited;
 extern bool __asan_in_runtime;
 extern bool __asan_can_poison_memory;
 
-static inline void _memset(void *p, int value, size_t sz) {
+static inline void *_memset(void *p, int value, size_t sz) {
   for (size_t i = 0; i < sz; ++i)
     ((char*)p)[i] = (char)value;
+  return p;
 }
 
-static inline void _memcpy(void *dst, void *src, size_t sz) {
+static inline void *_memcpy(void *dst, void *src, size_t sz) {
   char *dst_c = (char*)dst,
        *src_c = (char*)src;
   for (size_t i = 0; i < sz; ++i)
     dst_c[i] = src_c[i];
+  return dst;
 }
 
 static inline uptr RoundUpTo(uptr size, uptr boundary) {
@@ -159,6 +163,7 @@ static inline bool AddressIsPoisoned(uptr a) {
 // Return true if we can quickly decide that the region is unpoisoned.
 // We assume that a redzone is at least 16 bytes.
 static inline bool QuickCheckForUnpoisonedRegion(uptr beg, uptr size) {
+  ASSERT (AddrRangeInSmm(beg, size));
   if (size == 0) return true;
   if (size <= 32)
     return !AddressIsPoisoned(beg) &&
@@ -191,15 +196,19 @@ static inline bool mem_is_zero(const char *beg, uptr size) {
   return all == 0;
 }
 
-#define ACCESS_MEMORY_RANGE(offset, size, isWrite) do {                 \
-    uptr __offset = (uptr)(offset);                                     \
-    uptr __size = (uptr)(size);                                         \
-    uptr __bad = 0;                                                     \
-    if (!QuickCheckForUnpoisonedRegion(__offset, __size) &&             \
-        (__bad = __asan_region_is_poisoned(__offset, __size))) {        \
-      GET_CURRENT_PC_BP_SP;                                             \
-      ReportGenericError(pc, bp, sp, __bad, isWrite, __size, 0, false); \
-    }                                                                   \
+// If the address range falls outside (also if only partly) of SMRAM, don't
+// check the access.
+#define ACCESS_MEMORY_RANGE(offset, size, isWrite) do {                   \
+    if (AddrRangeInSmm(offset, size)) {                                   \
+      uptr __offset = (uptr)(offset);                                     \
+      uptr __size = (uptr)(size);                                         \
+      uptr __bad = 0;                                                     \
+      if (!QuickCheckForUnpoisonedRegion(__offset, __size) &&             \
+          (__bad = __asan_region_is_poisoned(__offset, __size))) {        \
+        GET_CURRENT_PC_BP_SP;                                             \
+        ReportGenericError(pc, bp, sp, __bad, isWrite, __size, 0, false); \
+      }                                                                   \
+    }                                                                     \
   } while (0)
 
 #define ASAN_READ_RANGE(offset, size)       \
