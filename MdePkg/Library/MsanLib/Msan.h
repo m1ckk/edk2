@@ -44,6 +44,13 @@ extern bool print_stats;
   if (msan_inited)                                       \
     BufferedStackTraceUnwind2(&stack, pc, bp, NULL, fast_unwind_on_fatal)
 
+// Take off-by-one into account.
+#define AddrRangeInSmm(p, s) (AddrIsInMem((uptr)p) && AddrIsInMem((uptr)p + s - 1))
+
+static inline bool AddrIsInMem(uptr a) {
+  return (a >= SMM_BEGIN) && (a < SMM_END);
+}
+
 extern const int kMsanParamTlsSize;
 extern const int kMsanRetvalTlsSize;
 extern u64 __msan_va_arg_overflow_size_tls;

@@ -3,12 +3,10 @@
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 
-#define ADDR_IN_SMRAM(p, s) ((uptr)p >= SMM_BEGIN && (((uptr)p + s) < SMM_END))
-
 void SetShadow(const void *ptr, uptr size, u8 value) {
   uptr shadow_beg = MEM_TO_SHADOW((uptr)ptr);
 
-  if (!ADDR_IN_SMRAM(ptr, size)) {
+  if (!AddrRangeInSmm(ptr, size)) {
     return;
   }
   memset((void *)shadow_beg, value, size);
@@ -19,7 +17,7 @@ void __msan_unpoison_param(uptr n) {
 }
 
 void __msan_unpoison(const void *buf, uptr size) {
-  if (!ADDR_IN_SMRAM(buf, size)) {
+  if (!AddrRangeInSmm(buf, size)) {
     return;
   }
   SetShadow(buf, size, 0);
@@ -67,10 +65,10 @@ void __msan_transfer_shadow(void *dst, void *src, uptr size) {
   uptr shadow_beg_src = MEM_TO_SHADOW((uptr)src);
   uptr shadow_beg_dst = MEM_TO_SHADOW((uptr)dst);
 
-  if (!ADDR_IN_SMRAM(src, size)) {
+  if (!AddrRangeInSmm(src, size)) {
     // src is out of SMRAM.
     //DEBUG ((DEBUG_INFO, "src is out of SMRAM: %p -> %p\n", src, dst));
-    if (!ADDR_IN_SMRAM(dst, size)) {
+    if (!AddrRangeInSmm(dst, size)) {
       // dst is out of SMRAM.
       return;
     } else {
@@ -81,7 +79,7 @@ void __msan_transfer_shadow(void *dst, void *src, uptr size) {
     }
   } else {
     // src is in SMRAM.
-    if (!ADDR_IN_SMRAM(dst, size)) {
+    if (!AddrRangeInSmm(dst, size)) {
       // dst is outside of SMRAM.
       //DEBUG ((DEBUG_INFO, "dst is out of SMRAM: %p -> %p\n", src, dst));
       // Do nothing, as we are copying memory to outside of SMRAM.
