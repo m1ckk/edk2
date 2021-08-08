@@ -178,5 +178,5 @@ for benchmark in smi_benchmarks:
         
 with open(log_file, "w") as f:
     for benchmark in smi_benchmarks:
-        f.write(benchmark + "\n")
+        f.write("instruction," + benchmark + "\n")
 

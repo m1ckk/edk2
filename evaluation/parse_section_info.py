@@ -141,4 +141,4 @@ csv_text.append(",".join([defense, "total_peak_size", str(total_bytes)]))
 # Only show the relevant information, i.e., function stack usage and total used
 # bytes.
 for csv in csv_text[-1:]:
-    print(csv)
+    print("memory," + csv)
