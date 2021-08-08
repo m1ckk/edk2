@@ -1,12 +1,14 @@
 #include "MsanPoisoning.h"
-#include "MsanInternal.h"
+#include "Msan.h"
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
+
+#define ADDR_IN_SMRAM(p, s) ((uptr)p >= SMM_BEGIN && (((uptr)p + s) < SMM_END))
 
 void SetShadow(const void *ptr, uptr size, u8 value) {
   uptr shadow_beg = MEM_TO_SHADOW((uptr)ptr);
 
-  if (!((uptr)ptr >= SMM_BEGIN && (((uptr)ptr + size) < SMM_END))) {
+  if (!ADDR_IN_SMRAM(ptr, size)) {
     return;
   }
   memset((void *)shadow_beg, value, size);
@@ -16,12 +18,15 @@ void __msan_unpoison_param(uptr n) {
   memset(__msan_param_tls, 0, n * sizeof(*__msan_param_tls));
 }
 
-void __msan_unpoison(const void *a, uptr size) {
-  SetShadow(a, size, 0);
+void __msan_unpoison(const void *buf, uptr size) {
+  if (!ADDR_IN_SMRAM(buf, size)) {
+    return;
+  }
+  SetShadow(buf, size, 0);
 }
 
-void __msan_poison(const void *a, uptr size) {
-  SetShadow(a, size, -1);
+void __msan_poison(const void *buf, uptr size) {
+  SetShadow(buf, size, -1);
 }
 
 // Poison section SectionName which starts at BaseAddress until BaseAddress + Size.
@@ -58,15 +63,14 @@ void __msan_poison_section(CHAR8 *DriverName, CHAR8 *SectionName, uptr BaseAddre
   }
 }
 
-
-
 void __msan_transfer_shadow(void *dst, void *src, uptr size) {
   uptr shadow_beg_src = MEM_TO_SHADOW((uptr)src);
   uptr shadow_beg_dst = MEM_TO_SHADOW((uptr)dst);
 
-  if (!(((uptr)src >= SMM_BEGIN) && (((uptr)src + size) < SMM_END))) {
+  if (!ADDR_IN_SMRAM(src, size)) {
     // src is out of SMRAM.
-    if (!(((uptr)dst >= SMM_BEGIN) && (((uptr)dst + size) < SMM_END))) {
+    //DEBUG ((DEBUG_INFO, "src is out of SMRAM: %p -> %p\n", src, dst));
+    if (!ADDR_IN_SMRAM(dst, size)) {
       // dst is out of SMRAM.
       return;
     } else {
@@ -77,8 +81,9 @@ void __msan_transfer_shadow(void *dst, void *src, uptr size) {
     }
   } else {
     // src is in SMRAM.
-    if (!(((uptr)dst >= SMM_BEGIN) && (((uptr)dst + size) < SMM_END))) {
+    if (!ADDR_IN_SMRAM(dst, size)) {
       // dst is outside of SMRAM.
+      //DEBUG ((DEBUG_INFO, "dst is out of SMRAM: %p -> %p\n", src, dst));
       // Do nothing, as we are copying memory to outside of SMRAM.
       return;
     } else {

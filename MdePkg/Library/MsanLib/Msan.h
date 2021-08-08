@@ -15,11 +15,11 @@ typedef UINTN uhwptr;
 
 #define ALWAYS_INLINE __attribute__((always_inline))
 
-#define SMM_BEGIN 0x7F000000UL
-#define SMM_END 0x7F800000UL
-#define SHADOW_BEGIN 0x7F800000UL
-#define SHADOW_END 0x80000000UL
-#define AND_MASK 0xffffffffff000000UL
+#define SMM_BEGIN     0x7F000000UL
+#define SMM_END       0x7F800000UL
+#define SHADOW_BEGIN  0x7F800000UL
+#define SHADOW_END    0x80000000UL
+#define AND_MASK      0xffffffffff000000UL
 #define MEM_TO_SHADOW(mem) ((mem & ~(AND_MASK)) + (SHADOW_BEGIN))
 
 #define GET_CURRENT_FRAME() (uptr) __builtin_frame_address(0)
@@ -56,5 +56,8 @@ extern u64 __msan_va_arg_tls[];
 extern int msan_report_count;
 // Not much needed to initialize MSan, so for now we just assume it inited.
 extern int msan_inited;
+
+void *memset(void *s, int c, size_t n);
+void *memcpy(void *restrict dest, const void *restrict src, size_t n);
 
 #endif

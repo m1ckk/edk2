@@ -612,9 +612,6 @@ SmmVariableHandler (
 
   SmmVariableFunctionHeader = (SMM_VARIABLE_COMMUNICATE_HEADER *)CommBuffer;
 
-  DEBUG ((DEBUG_INFO, "SmmVariableFunctionHeader@%p\n", SmmVariableFunctionHeader));
-  DEBUG ((DEBUG_INFO, "SmmVariableFunctionHeader->Data@%p\n", SmmVariableFunctionHeader->Data));
-
   switch (SmmVariableFunctionHeader->Function) {
     case SMM_VARIABLE_FUNCTION_GET_VARIABLE:
       if (CommBufferPayloadSize < OFFSET_OF(SMM_VARIABLE_COMMUNICATE_ACCESS_VARIABLE, Name)) {

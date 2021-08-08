@@ -1,7 +1,6 @@
 #ifndef __MSAN_POISONING_H__
 #define __MSAN_POISONING_H__
 
-
 #include "Msan.h"
 
 void SetShadow(const void *ptr, uptr size, u8 value);
