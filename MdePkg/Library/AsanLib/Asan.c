@@ -140,14 +140,20 @@ void __asan_handle_no_return(void) {
 void *__asan_memcpy(uptr dst, uptr src, size_t size) {
   ASAN_READ_RANGE(src, size);
   ASAN_WRITE_RANGE(dst, size);
-  _memcpy((void *)dst, (void *)src, size);
-  return (void *)dst;
+  return _memcpy((void *)dst, (void *)src, size);
 }
 
 void *__asan_memset(void *s, int c, size_t n) {
   ASAN_WRITE_RANGE(s, n);
-  _memset(s, c, n);
-  return s;
+  return _memset(s, c, n);
+}
+
+void __asan_read_range(void *Buf, UINTN Size) {
+  ASAN_READ_RANGE((uptr)Buf, Size);
+}
+
+void __asan_write_range(void *Buf, UINTN Size) {
+  ASAN_WRITE_RANGE((uptr)Buf, Size);
 }
 
 void __asan_register_globals(const struct __asan_global *globals, uptr n) {

@@ -28,7 +28,6 @@
   AsanAlloc.c
   AsanPoisoning.c
   AsanFakeStack.c
-  AsanExternal.c
 
 [Packages]
   MdePkg/MdePkg.dec

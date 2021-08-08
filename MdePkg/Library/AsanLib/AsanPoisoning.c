@@ -82,8 +82,9 @@ void PoisonRedZones(const struct __asan_global g) {
 uptr __asan_region_is_poisoned(uptr beg, uptr size) {
   if (!size) return 0;
   uptr end = beg + size;
-  if (!AddrIsInMem(beg)) return beg;
-  if (!AddrIsInMem(end)) return end;
+  ASSERT (AddrRangeInSmm(beg, size));
+  //if (!AddrIsInMem(beg)) return beg;
+  //if (!AddrIsInMem(end)) return end;
   uptr aligned_b = RoundUpTo(beg, SHADOW_GRANULARITY);
   uptr aligned_e = RoundDownTo(end, SHADOW_GRANULARITY);
   uptr shadow_beg = MEM_TO_SHADOW(aligned_b);
