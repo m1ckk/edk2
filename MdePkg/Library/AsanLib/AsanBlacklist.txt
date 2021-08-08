@@ -1,10 +1,3 @@
 # Code which executes before we get to our entry point of a library
 # /mnt/part5/edk2-msan/Build/OvmfX64/DEBUG_CLANGPDB/X64/MdeModulePkg/Universal/Variable/RuntimeDxe/VariableSmm/DEBUG/AutoGen.c
 src:*AutoGen.c
-# Strange errors which I have not yet been able to correctly debug. It seems that the error is in the msan_parameter/msan_return propagation.
-# The error seems to come from failing to write unpoison the Remainder variable of the DivU64x32Remainder function.
-src:*/Library/PlatformDebugLibIoPort/*
-src:*/Library/BasePrintLib/*
-src:*/Library/BaseDebugPrintErrorLevelLib/*
-# We call __asan_init in this function, so we cannot yet use the FakeStack here.
-fun:VariableServiceInitialize
