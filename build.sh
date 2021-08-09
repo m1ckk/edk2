@@ -39,15 +39,8 @@ then
     echo "Updated configurations."
     echo "Exiting..."
     exit
-# Deleting Build directory
-elif [[ $1 = "CLEAN" ]]
-then
-    echo "Cleaning build directory."
-    shift
-    rm -rf Build
-    exit
 # A build without instrumentation
-elif [[ $1 = "CLEAN_BUILD" ]]
+elif [[ $1 = "CLEAN" ]]
 then
     echo "Building clean edk2."
     shift
