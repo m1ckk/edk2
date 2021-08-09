@@ -198,7 +198,6 @@ void __asan_init(void) {
   __asan_option_detect_stack_use_after_return = 1;
 #endif
   __asan_inited = 1;
-  __asan_option_detect_stack_use_after_return = 1;
   __asan_can_poison_memory = 1;
   DEBUG ((DEBUG_INFO, "[ASAN] __asan_init(): finished\n"));
   __asan_in_runtime = 0;
