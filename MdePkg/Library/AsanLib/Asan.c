@@ -197,7 +197,6 @@ void __asan_init(void) {
   initFakeStack();
   __asan_option_detect_stack_use_after_return = 1;
 #endif
-  initFakeStack();
   __asan_inited = 1;
   __asan_option_detect_stack_use_after_return = 1;
   __asan_can_poison_memory = 1;
