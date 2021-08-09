@@ -5,9 +5,7 @@ src:*AutoGen.c
 fun:UefiBootServicesTableLibConstructor
 # Strange errors which I have not yet been able to correctly debug. It seems that the error is in the msan_parameter/msan_return propagation.
 # The error seems to come from failing to write unpoison the Remainder variable of the DivU64x32Remainder function.
-src:*/Library/PlatformDebugLibIoPort/*
 src:*/Library/BasePrintLib/*
-src:*/Library/BaseDebugPrintErrorLevelLib/*
 # We do explicit poisoning for these functions.
 fun:CopyMem
 fun:SetMem*
